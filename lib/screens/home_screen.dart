@@ -3,6 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:it/constants.dart';
 import 'package:it/main.dart';
 import 'package:it/screens/it_screen.dart';
+import 'package:it/screens/me_screen.dart';
+import 'package:it/screens/players_screen.dart';
+import 'package:it/screens/records_screen.dart';
 import 'package:it/widgets/nav_bar.dart';
 import 'package:it/widgets/player_icon.dart';
 
@@ -15,27 +18,54 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   Screens activeScreen = Screens.it;
+  PageController pageController = PageController();
+  bool changingFromNavBar = false;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: styling.green,
       body: Column(
         mainAxisAlignment: .center,
         children: [
           Expanded(
             child: PageView(
+              controller: pageController,
+              onPageChanged: (value) {
+                if (changingFromNavBar) {
+                  return;
+                }
+                setState(() {
+                  activeScreen = Screens.values[value];
+                });
+              },
               children: [
                 ItScreen(),
-                Container(color: Colors.blue),
-                Container(color: Colors.green),
+
+                PlayersScreen(),
+                RecordsScreen(),
+                MeScreen(),
               ],
             ),
           ),
           NavBar(
             activeScreen: activeScreen,
             onTap: (screen) {
+              setState(() {
+                changingFromNavBar = true;
+              });
               HapticFeedback.lightImpact();
               setState(() {
                 activeScreen = screen;
+                pageController.animateToPage(
+                  screen.index,
+                  duration: Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                );
+              });
+              Future.delayed(Duration(milliseconds: 300), () {
+                setState(() {
+                  changingFromNavBar = false;
+                });
               });
             },
           ),

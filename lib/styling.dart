@@ -5,6 +5,7 @@ class Styling {
   TextStyle headerFont = GoogleFonts.caprasimo();
   TextStyle bodyFont = GoogleFonts.dmSans();
   TextStyle numberFont = GoogleFonts.jetBrainsMono();
+  Color lightGreen = Color(0xFFc0f8d1);
   Color green = Color(0xFFd7f6e1);
   Color darkGreen = Color(0xFFbff0a8);
   Color blue = Color(0xFF1d3557);
