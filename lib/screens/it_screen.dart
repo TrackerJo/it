@@ -349,7 +349,7 @@ class _ItScreenState extends State<ItScreen>
                 },
                 onTapCancel: _releaseButton,
                 onTap: () {
-                  router.push("/tag");
+                  router.push("/welcome");
                 },
 
                 child: AnimatedContainer(

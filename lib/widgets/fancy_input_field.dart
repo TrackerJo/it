@@ -6,6 +6,8 @@ class FancyInputField extends StatelessWidget {
   final double? width;
   final double? height;
   final TextEditingController? controller;
+  final TextInputType? keyboardType;
+  final bool obscureText;
   const FancyInputField({
     super.key,
 
@@ -13,6 +15,8 @@ class FancyInputField extends StatelessWidget {
     this.width,
     this.height,
     this.controller,
+    this.keyboardType = TextInputType.text,
+    this.obscureText = false,
   });
 
   @override
@@ -39,6 +43,9 @@ class FancyInputField extends StatelessWidget {
 
           hintStyle: styling.bodyFont.copyWith(color: styling.blueMute),
         ),
+        keyboardType: keyboardType,
+        obscureText: obscureText,
+        
       ),
     );
   }
