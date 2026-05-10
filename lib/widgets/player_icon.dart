@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:it/constants.dart';
 import 'package:it/main.dart';
 
 class PlayerIcon extends StatelessWidget {
-  final String icon;
-  final Color color;
+  final Player player;
   final double iconSize;
   final double size;
   final Color? borderColor;
   final double borderWidth;
   const PlayerIcon({
     super.key,
-    required this.icon,
-    required this.color,
+    required this.player,
     this.size = 50,
     this.iconSize = 24,
     this.borderColor,
@@ -28,7 +27,7 @@ class PlayerIcon extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: color,
+        color: player.color,
         shape: BoxShape.circle,
         border: BoxBorder.all(
           color: borderColor ?? styling.blue,
@@ -44,7 +43,7 @@ class PlayerIcon extends StatelessWidget {
             fontSize: iconSize,
             fontWeight: FontWeight.bold,
           ),
-          child: Text(icon),
+          child: Text(player.icon),
         ),
       ),
     );

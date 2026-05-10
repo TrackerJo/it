@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:it/main.dart';
@@ -11,8 +13,25 @@ class TagScreen extends StatefulWidget {
   State<TagScreen> createState() => _TagScreenState();
 }
 
-class _TagScreenState extends State<TagScreen> {
+class _TagScreenState extends State<TagScreen> with TickerProviderStateMixin {
   String? selectedPlayer;
+  late final AnimationController _entranceController;
+
+  @override
+  void initState() {
+    super.initState();
+    _entranceController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _entranceController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -90,121 +109,88 @@ class _TagScreenState extends State<TagScreen> {
                 spacing: 16,
                 runSpacing: 16,
                 children: [
-                  GestureDetector(
-                    onTap: () async {
-                      HapticFeedback.lightImpact();
-                      setState(() {
-                        selectedPlayer = "Sarah";
-                      });
-                      await showModalBottomSheet(
-                        context: context,
-                        builder: (context) => TagSheet(),
-                      );
-                      setState(() {
-                        selectedPlayer = null;
-                      });
-                    },
-                    child: Column(
-                      children: [
-                        PlayerIcon(
-                          icon: "SK",
-                          color: styling.pink,
-                          size: selectedPlayer == "Sarah" ? 110 : 100,
-                          borderColor: selectedPlayer == "Sarah"
-                              ? styling.pink
-                              : null,
-                          borderWidth: selectedPlayer == "Sarah" ? 4 : 2,
-                          iconSize: selectedPlayer == "Sarah" ? 60 : 50,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          "Sarah",
-                          style: styling.bodyFont.copyWith(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: styling.blue,
+                  ...() {
+                    final available = game.players
+                        .where((player) => !player.isIt)
+                        .toList();
+                    return available.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final player = entry.value;
+                      final stagger = (index * 0.08).clamp(0.0, 0.5);
+                      final popEnd = (stagger + 0.45).clamp(0.0, 1.0);
+                      final giggleEnd = (stagger + 0.9).clamp(0.0, 1.0);
+                      return AnimatedBuilder(
+                        animation: _entranceController,
+                        builder: (context, child) {
+                          final popT = Interval(
+                            stagger,
+                            popEnd,
+                            curve: Curves.elasticOut,
+                          ).transform(_entranceController.value);
+                          final giggleT = Interval(
+                            stagger,
+                            giggleEnd,
+                            curve: Curves.easeOut,
+                          ).transform(_entranceController.value);
+                          final scale = popT.clamp(0.0, 1.2);
+                          final wiggle =
+                              sin(giggleT * pi * 3) * 0.18 * (1 - giggleT);
+                          return Opacity(
+                            opacity: popT.clamp(0.0, 1.0),
+                            child: Transform.rotate(
+                              angle: wiggle,
+                              child: Transform.scale(
+                                scale: scale,
+                                child: child,
+                              ),
+                            ),
+                          );
+                        },
+                        child: GestureDetector(
+                          onTap: () async {
+                            HapticFeedback.lightImpact();
+                            setState(() {
+                              selectedPlayer = player.name;
+                            });
+                            await showModalBottomSheet(
+                              context: context,
+                              builder: (context) =>
+                                  TagSheet(taggedPlayer: player),
+                            );
+                            setState(() {
+                              selectedPlayer = null;
+                            });
+                          },
+                          child: Column(
+                            children: [
+                              PlayerIcon(
+                                player: player,
+                                size: selectedPlayer == player.name ? 110 : 100,
+                                borderColor: selectedPlayer == player.name
+                                    ? player.color
+                                    : null,
+                                borderWidth: selectedPlayer == player.name
+                                    ? 4
+                                    : 2,
+                                iconSize: selectedPlayer == player.name
+                                    ? 60
+                                    : 50,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                player.name,
+                                style: styling.bodyFont.copyWith(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: styling.blue,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () async {
-                      HapticFeedback.lightImpact();
-                      setState(() {
-                        selectedPlayer = "Nathaniel";
-                      });
-                      await showModalBottomSheet(
-                        context: context,
-                        builder: (context) => TagSheet(),
                       );
-                      setState(() {
-                        selectedPlayer = null;
-                      });
-                    },
-                    child: Column(
-                      children: [
-                        PlayerIcon(
-                          icon: "NK",
-                          color: styling.orange,
-                          size: selectedPlayer == "Nathaniel" ? 110 : 100,
-                          borderColor: selectedPlayer == "Nathaniel"
-                              ? styling.pink
-                              : null,
-                          borderWidth: selectedPlayer == "Nathaniel" ? 4 : 2,
-
-                          iconSize: selectedPlayer == "Nathaniel" ? 60 : 50,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          "Nathaniel",
-                          style: styling.bodyFont.copyWith(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: styling.blue,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () async {
-                      HapticFeedback.lightImpact();
-                      setState(() {
-                        selectedPlayer = "Emily";
-                      });
-                      await showModalBottomSheet(
-                        context: context,
-                        builder: (context) => TagSheet(),
-                      );
-                      setState(() {
-                        selectedPlayer = null;
-                      });
-                    },
-                    child: Column(
-                      children: [
-                        PlayerIcon(
-                          icon: "EK",
-                          color: styling.darkGreen,
-                          size: selectedPlayer == "Emily" ? 110 : 100,
-                          borderColor: selectedPlayer == "Emily"
-                              ? styling.pink
-                              : null,
-                          borderWidth: selectedPlayer == "Emily" ? 4 : 2,
-                          iconSize: selectedPlayer == "Emily" ? 60 : 50,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          "Emily",
-                          style: styling.bodyFont.copyWith(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: styling.blue,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                    });
+                  }(),
                 ],
               ),
             ),

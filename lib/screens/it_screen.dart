@@ -1,5 +1,9 @@
+import 'dart:async';
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:it/constants.dart';
 import 'package:it/main.dart';
 import 'package:it/widgets/player_icon.dart';
 
@@ -10,10 +14,60 @@ class ItScreen extends StatefulWidget {
   State<ItScreen> createState() => _ItScreenState();
 }
 
-class _ItScreenState extends State<ItScreen> {
+class _ItScreenState extends State<ItScreen>
+    with SingleTickerProviderStateMixin {
   static const _pressDuration = Duration(milliseconds: 80);
   bool buttonPressed = false;
   DateTime? _pressedAt;
+  Player? taggedBy;
+  Timer? _timer;
+  String timerText = "";
+  late final AnimationController _wiggleController;
+
+  void _updateTimer() {
+    final elapsed = DateTime.now().difference(game.latestTag.timestamp);
+    setState(() {
+      timerText = _formatElapsed(elapsed);
+    });
+  }
+
+  String _formatElapsed(Duration d) {
+    if (d.isNegative) d = Duration.zero;
+    if (d.inDays >= 1) {
+      return "${d.inDays}d ${d.inHours.remainder(24)}h";
+    }
+    if (d.inHours >= 1) {
+      return "${d.inHours}h ${d.inMinutes.remainder(60)}m";
+    }
+    if (d.inMinutes >= 1) {
+      return "${d.inMinutes}m ${d.inSeconds.remainder(60)}s";
+    }
+    return "${d.inSeconds}s";
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    taggedBy = game.getPlayerFromId(game.latestTag.taggerPlayerId);
+    setState(() {});
+    _updateTimer();
+    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+      _updateTimer();
+    });
+    _wiggleController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1600),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    _wiggleController.dispose();
+    super.dispose();
+    _timer?.cancel();
+  }
 
   void _releaseButton() {
     if (!buttonPressed) return;
@@ -30,7 +84,7 @@ class _ItScreenState extends State<ItScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return _buildIt(context);
+    return player.isIt ? _buildIt(context) : _buildOtherIt(context);
   }
 
   Widget _buildOtherIt(BuildContext context) {
@@ -44,41 +98,8 @@ class _ItScreenState extends State<ItScreen> {
         child: Column(
           mainAxisAlignment: .center,
           children: [
-            SizedBox(height: MediaQuery.of(context).padding.top),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: styling.pink,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  SizedBox(width: 10),
-                  Text(
-                    "Sophmore Kid's",
-                    style: styling.bodyFont.copyWith(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: styling.blue,
-                    ),
-                  ),
-                  Spacer(),
-                  Text(
-                    "7 players",
-                    style: styling.bodyFont.copyWith(
-                      fontSize: 12,
-                      color: styling.blueMute,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
+            SizedBox(height: MediaQuery.of(context).padding.top + 16),
+
             Text(
               "-- CURRENTLY IT --",
               style: styling.bodyFont.copyWith(
@@ -88,22 +109,34 @@ class _ItScreenState extends State<ItScreen> {
               ),
             ),
             Spacer(),
-            PlayerIcon(
-              icon: "🐸",
-              color: styling.darkGreen,
-              size: 200,
-              iconSize: 100,
+            AnimatedBuilder(
+              animation: _wiggleController,
+              builder: (context, child) {
+                final t = _wiggleController.value * 2 * pi;
+                final angle = sin(t) * 0.08;
+                final dy = (cos(t * 2) - 1) * 2;
+                return Transform.translate(
+                  offset: Offset(0, dy),
+                  child: Transform.rotate(angle: angle, child: child),
+                );
+              },
+              child: PlayerIcon(
+                player: game.itPlayer,
+                size: 200,
+                iconSize: 100,
+              ),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: FittedBox(
                 fit: BoxFit.scaleDown,
                 child: Text(
-                  "Nathaniel",
+                  game.itPlayer.name,
                   maxLines: 1,
                   style: styling.headerFont.copyWith(
                     fontSize: 88,
                     fontWeight: FontWeight.w400,
+                    height: 1.2,
                     color: styling.blue,
                   ),
                 ),
@@ -119,25 +152,17 @@ class _ItScreenState extends State<ItScreen> {
                 ),
                 children: [
                   TextSpan(
-                    text: "Sarah",
+                    text: taggedBy?.name ?? "Unknown",
                     style: styling.bodyFont.copyWith(
                       fontSize: 14,
                       fontWeight: FontWeight.w900,
                       color: styling.blue,
                     ),
                   ),
-                  TextSpan(
-                    text: " — 2m ago",
-                    style: styling.bodyFont.copyWith(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: styling.blueMute,
-                    ),
-                  ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             Text(
               "They've been it for",
               style: styling.bodyFont.copyWith(
@@ -163,7 +188,7 @@ class _ItScreenState extends State<ItScreen> {
                 ],
               ),
               child: Text(
-                "1m 23s",
+                timerText,
                 style: styling.numberFont.copyWith(
                   fontSize: 32,
                   fontWeight: FontWeight.w700,
@@ -214,7 +239,7 @@ class _ItScreenState extends State<ItScreen> {
                     ],
                   ),
                   child: Text(
-                    "Boo Nathaniel",
+                    "Boo ${game.itPlayer.name}",
                     style: styling.bodyFont.copyWith(
                       fontSize: 24,
                       fontWeight: FontWeight.w700,
@@ -244,42 +269,21 @@ class _ItScreenState extends State<ItScreen> {
           mainAxisAlignment: .center,
           children: [
             SizedBox(height: MediaQuery.of(context).padding.top),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: styling.darkGreen,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  SizedBox(width: 10),
-                  Text(
-                    "Sophmore Kid's",
-                    style: styling.bodyFont.copyWith(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: styling.white,
-                    ),
-                  ),
-                  Spacer(),
-                  Text(
-                    "7 players",
-                    style: styling.bodyFont.copyWith(
-                      fontSize: 12,
-                      color: styling.white,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
             Spacer(),
-            Text("🫵", style: TextStyle(fontSize: 100)),
+
+            AnimatedBuilder(
+              animation: _wiggleController,
+              builder: (context, child) {
+                final t = _wiggleController.value * 2 * pi;
+                final angle = sin(t) * 0.12;
+                final dy = (cos(t * 2) - 1) * 2;
+                return Transform.translate(
+                  offset: Offset(0, dy),
+                  child: Transform.rotate(angle: angle, child: child),
+                );
+              },
+              child: const Text("🫵", style: TextStyle(fontSize: 100)),
+            ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
@@ -310,7 +314,7 @@ class _ItScreenState extends State<ItScreen> {
                 borderRadius: BorderRadius.circular(50),
               ),
               child: Text(
-                "1m 23s of shame",
+                "${timerText} of shame",
                 style: styling.numberFont.copyWith(
                   fontSize: 24,
                   fontWeight: FontWeight.w700,
@@ -320,7 +324,7 @@ class _ItScreenState extends State<ItScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              "Nathaniel tagged you. Get rid of it before someone makes it weird.",
+              "${taggedBy?.name ?? ""} tagged you. Get rid of it before someone makes it weird.",
               style: styling.bodyFont.copyWith(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -345,8 +349,7 @@ class _ItScreenState extends State<ItScreen> {
                 },
                 onTapCancel: _releaseButton,
                 onTap: () {
-                  // router.push("/tag");
-                  router.push("onboarding");
+                  router.push("/tag");
                 },
 
                 child: AnimatedContainer(

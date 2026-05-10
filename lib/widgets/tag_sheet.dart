@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:it/constants.dart';
 import 'package:it/main.dart';
 import 'package:it/widgets/player_icon.dart';
 
 class TagSheet extends StatefulWidget {
-  const TagSheet({super.key});
+  final Player taggedPlayer;
+  const TagSheet({super.key, required this.taggedPlayer});
 
   @override
   State<TagSheet> createState() => _TagSheetState();
@@ -28,10 +30,10 @@ class _TagSheetState extends State<TagSheet> {
         mainAxisSize: MainAxisSize.min,
         children: [
           const SizedBox(height: 32),
-          PlayerIcon(icon: "Ek", color: styling.blue, size: 100, iconSize: 50),
+          PlayerIcon(player: widget.taggedPlayer, size: 100, iconSize: 50),
           const SizedBox(height: 16),
           Text(
-            "Tag Emily?",
+            "Did you tag ${widget.taggedPlayer.name}?",
             style: styling.headerFont.copyWith(
               fontSize: 32,
               fontWeight: FontWeight.w700,
@@ -65,7 +67,9 @@ class _TagSheetState extends State<TagSheet> {
               ),
               GestureDetector(
                 onTap: () {
-                  router.pop();
+                  game.tagPlayer(widget.taggedPlayer.id);
+
+                  router.pushReplacement('/gotcha');
                 },
                 child: Container(
                   padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
