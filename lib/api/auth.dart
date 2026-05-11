@@ -85,4 +85,9 @@ class Auth {
     final user = FirebaseAuth.instance.currentUser;
     return await user?.getIdToken();
   }
+
+  //listen to auth state changes
+  Stream<User?> authStateChanges() {
+    return _auth.authStateChanges();
+  }
 }

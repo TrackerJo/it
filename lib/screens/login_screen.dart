@@ -66,7 +66,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       Text(
                         "Welcome to",
                         style: styling.headerFont.copyWith(
-                          fontSize: 32,
+                          fontSize: 48,
                           fontWeight: FontWeight.w400,
                           color: styling.blue,
                         ),
@@ -75,7 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       Text(
                         "It!",
                         style: styling.headerFont.copyWith(
-                          fontSize: 32,
+                          fontSize: 48,
                           fontWeight: FontWeight.w600,
                           color: styling.pink,
                         ),

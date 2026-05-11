@@ -166,7 +166,7 @@ class _WelcomeSreenState extends State<WelcomeSreen>
               child: FadeTransition(
                 opacity: _captionFade,
                 child: Text(
-                  "The ultimate tag app",
+                  "Time to be a kid again.",
                   style: styling.bodyFont.copyWith(
                     fontSize: 24,
                     color: styling.blue,

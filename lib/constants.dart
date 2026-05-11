@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:it/api/database.dart';
 
 enum Screens { it, players, records, me }
 
@@ -18,26 +19,58 @@ class TabItem {
   });
 }
 
-class Player {
-  final String id;
+class MiniPlayer {
   final String name;
   final String icon;
   final Color color;
+
+  MiniPlayer({required this.name, required this.icon, required this.color});
+}
+
+class Player extends MiniPlayer {
+  final String id;
+
   final bool isHost;
   int taunts;
   int timesTaunted;
   bool isIt;
 
   Player({
-    required this.name,
-    required this.icon,
-    required this.color,
+    required super.name,
+    required super.icon,
+    required super.color,
     this.isHost = false,
     this.isIt = false,
     this.taunts = 0,
     this.timesTaunted = 0,
     required this.id,
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'icon': icon,
+      'color': color.toARGB32(),
+      'isHost': isHost,
+      'taunts': taunts,
+      'timesTaunted': timesTaunted,
+      'isIt': isIt,
+    };
+  }
+
+  factory Player.fromMap(Map<String, dynamic> map) {
+    return Player(
+      id: map['id'],
+      name: map['name'],
+      icon: map['icon'],
+      color: Color(map['color']),
+      isHost: map['isHost'],
+      taunts: map['taunts'],
+      timesTaunted: map['timesTaunted'],
+      isIt: map['isIt'],
+    );
+  }
 }
 
 class Tag {
@@ -50,6 +83,22 @@ class Tag {
     required this.taggedPlayerId,
     required this.timestamp,
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'taggerPlayerId': taggerPlayerId,
+      'taggedPlayerId': taggedPlayerId,
+      'timestamp': timestamp.toIso8601String(),
+    };
+  }
+
+  factory Tag.fromMap(Map<String, dynamic> map) {
+    return Tag(
+      taggerPlayerId: map['taggerPlayerId'],
+      taggedPlayerId: map['taggedPlayerId'],
+      timestamp: DateTime.parse(map['timestamp']),
+    );
+  }
 }
 
 class TagBack {
@@ -65,21 +114,54 @@ class TagBack {
 }
 
 class Game {
-  final String id;
+  String id;
   final String name;
   final List<Player> players;
   final List<Tag> tags;
   final DateTime createdAt;
+  DateTime? startedAt;
   final int joinCode;
+  bool isStarted;
 
   Game({
     required this.id,
     required this.players,
     required this.tags,
     required this.createdAt,
+    this.startedAt,
+    this.isStarted = false,
     required this.joinCode,
     required this.name,
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'players': players.map((p) => p.toMap()).toList(),
+      'playerIds': players.map((p) => p.id).toList(),
+      'tags': tags.map((t) => t.toMap()).toList(),
+      'createdAt': createdAt.toIso8601String(),
+      'startedAt': startedAt?.toIso8601String(),
+      'isStarted': isStarted,
+      'joinCode': joinCode,
+    };
+  }
+
+  factory Game.fromMap(Map<String, dynamic> map) {
+    return Game(
+      id: map['id'],
+      name: map['name'],
+      players: List<Player>.from(map['players']?.map((p) => Player.fromMap(p))),
+      tags: List<Tag>.from(map['tags']?.map((t) => Tag.fromMap(t))),
+      createdAt: DateTime.parse(map['createdAt']),
+      startedAt: map['startedAt'] != null
+          ? DateTime.parse(map['startedAt'])
+          : null,
+      isStarted: map['isStarted'],
+      joinCode: map['joinCode'],
+    );
+  }
 
   Player getPlayerFromId(String playerId) {
     return players.firstWhere((player) => player.id == playerId);
@@ -149,11 +231,12 @@ class Game {
     return null;
   }
 
-  Player get itPlayer {
-    return players.firstWhere((player) => player.isIt);
+  Player? get itPlayer {
+    return players.where((player) => player.isIt).firstOrNull;
   }
 
-  Tag get latestTag {
+  Tag? get latestTag {
+    if (tags.isEmpty) return null;
     return tags.reduce((a, b) => a.timestamp.isAfter(b.timestamp) ? a : b);
   }
 
@@ -185,6 +268,10 @@ class Game {
 
   Player? getUntouchablePlayer() {
     Map<String, int> playerTags = {};
+
+    for (var player in players) {
+      playerTags[player.id] = 0;
+    }
     for (var tag in tags) {
       if (playerTags.containsKey(tag.taggedPlayerId)) {
         playerTags[tag.taggedPlayerId] = playerTags[tag.taggedPlayerId]! + 1;
@@ -225,7 +312,7 @@ class Game {
           itDurations[tag.taggerPlayerId] = duration;
         }
       } else {
-        final duration = tag.timestamp.difference(createdAt);
+        final duration = tag.timestamp.difference(startedAt!);
         itDurations[tag.taggerPlayerId] = duration;
       }
       itStartTimes[tag.taggedPlayerId] = tag.timestamp;
@@ -255,8 +342,8 @@ class Game {
 
     for (final tag in sorted) {
       if (tag.taggerPlayerId == playerId) {
-        final start = itStartTimes[playerId] ?? createdAt;
-        final dur = tag.timestamp.difference(start);
+        final start = itStartTimes[playerId] ?? startedAt;
+        final dur = tag.timestamp.difference(start!);
         if (dur > longestDuration) longestDuration = dur;
         itStartTimes.remove(playerId);
       }
@@ -280,8 +367,8 @@ class Game {
 
     for (final tag in sorted) {
       if (tag.taggedPlayerId == playerId) {
-        final start = taggedAt[playerId] ?? createdAt;
-        final dur = tag.timestamp.difference(start);
+        final start = taggedAt[playerId] ?? startedAt;
+        final dur = tag.timestamp.difference(start!);
         if (dur > longestDuration) longestDuration = dur;
         taggedAt.remove(playerId);
       }
@@ -297,12 +384,15 @@ class Game {
     return longestDuration;
   }
 
-  Tag getLastPlayerTag(String playerId) {
+  Tag? getLastPlayerTag(String playerId) {
     final sorted = [...tags]
       ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
-    return sorted.firstWhere(
-      (tag) => tag.taggedPlayerId == playerId || tag.taggerPlayerId == playerId,
-    );
+    return sorted
+        .where(
+          (tag) =>
+              tag.taggedPlayerId == playerId || tag.taggerPlayerId == playerId,
+        )
+        .firstOrNull;
   }
 
   TagBack? getFastestTagBack() {
@@ -331,7 +421,7 @@ class Game {
   }
 
   void tagPlayer(String taggedId) {
-    String taggerId = itPlayer.id;
+    String taggerId = itPlayer!.id;
     final tag = Tag(
       taggerPlayerId: taggerId,
       taggedPlayerId: taggedId,
@@ -340,6 +430,16 @@ class Game {
     tags.add(tag);
     getPlayerFromId(taggerId).isIt = false;
     getPlayerFromId(taggedId).isIt = true;
+    Database().updateGame(this);
+  }
+
+  void startGame() {
+    if (isStarted) return;
+    startedAt = DateTime.now();
+    isStarted = true;
+    int itPlayerIndex =
+        (DateTime.now().millisecondsSinceEpoch ~/ 1000) % players.length;
+    players[itPlayerIndex].isIt = true;
   }
 }
 
@@ -391,6 +491,7 @@ Game createTestGame() {
     players: players,
     tags: tags,
     createdAt: start,
+    startedAt: start,
     joinCode: 1234,
     name: "Sophmores are Kid's?",
   );

@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:it/constants.dart';
 import 'package:it/main.dart';
 import 'package:it/widgets/player_icon.dart';
 import 'package:it/widgets/tag_sheet.dart';
@@ -100,19 +101,21 @@ class _TagScreenState extends State<TagScreen> with TickerProviderStateMixin {
               ),
             ),
             const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              child: Wrap(
-                alignment: WrapAlignment.center,
-                runAlignment: WrapAlignment.center,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: 16,
-                runSpacing: 16,
-                children: [
-                  ...() {
-                    final available = game.players
-                        .where((player) => !player.isIt)
-                        .toList();
+            ValueListenableBuilder<Game>(
+              valueListenable: gameNotifier,
+              builder: (context, game, _) => SizedBox(
+                width: double.infinity,
+                child: Wrap(
+                  alignment: WrapAlignment.center,
+                  runAlignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 16,
+                  runSpacing: 16,
+                  children: [
+                    ...() {
+                      final available = game.players
+                          .where((player) => !player.isIt)
+                          .toList();
                     return available.asMap().entries.map((entry) {
                       final index = entry.key;
                       final player = entry.value;
@@ -191,7 +194,8 @@ class _TagScreenState extends State<TagScreen> with TickerProviderStateMixin {
                       );
                     });
                   }(),
-                ],
+                  ],
+                ),
               ),
             ),
           ],

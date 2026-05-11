@@ -22,55 +22,65 @@ class _HomeScreenState extends State<HomeScreen> {
   bool changingFromNavBar = false;
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: styling.green,
-      body: Column(
-        mainAxisAlignment: .center,
-        children: [
-          Expanded(
-            child: PageView(
-              controller: pageController,
-              onPageChanged: (value) {
-                if (changingFromNavBar) {
-                  return;
-                }
-                setState(() {
-                  activeScreen = Screens.values[value];
-                });
-              },
-              children: [
-                ItScreen(),
+    return ValueListenableBuilder<Game>(
+      valueListenable: gameNotifier,
+      builder: (context, game, _) {
+        return Scaffold(
+          backgroundColor: styling.green,
+          body: Column(
+            mainAxisAlignment: .center,
+            children: [
+              Expanded(
+                child: PageView(
+                  controller: pageController,
+                  onPageChanged: (value) {
+                    if (changingFromNavBar) {
+                      return;
+                    }
+                    setState(() {
+                      activeScreen = Screens.values[value];
+                    });
+                  },
+                  children: [
+                    ItScreen(),
 
-                PlayersScreen(),
-                RecordsScreen(),
-                MeScreen(),
-              ],
-            ),
+                    PlayersScreen(),
+                    if (game.isStarted) RecordsScreen(),
+                    MeScreen(),
+                  ],
+                ),
+              ),
+              NavBar(
+                activeScreen: activeScreen,
+                onTap: (screen) {
+                  setState(() {
+                    changingFromNavBar = true;
+                  });
+                  HapticFeedback.lightImpact();
+                  setState(() {
+                    activeScreen = screen;
+                    pageController.animateToPage(
+                      screen.index -
+                          (game.isStarted
+                              ? 0
+                              : screen == Screens.me
+                              ? 1
+                              : 0),
+                      duration: Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                    );
+                  });
+                  Future.delayed(Duration(milliseconds: 300), () {
+                    setState(() {
+                      changingFromNavBar = false;
+                    });
+                  });
+                },
+              ),
+            ],
           ),
-          NavBar(
-            activeScreen: activeScreen,
-            onTap: (screen) {
-              setState(() {
-                changingFromNavBar = true;
-              });
-              HapticFeedback.lightImpact();
-              setState(() {
-                activeScreen = screen;
-                pageController.animateToPage(
-                  screen.index,
-                  duration: Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                );
-              });
-              Future.delayed(Duration(milliseconds: 300), () {
-                setState(() {
-                  changingFromNavBar = false;
-                });
-              });
-            },
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

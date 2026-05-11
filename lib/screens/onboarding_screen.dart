@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:it/api/auth.dart';
+import 'package:it/api/database.dart';
+import 'package:it/api/shared_prefs.dart';
 import 'package:it/constants.dart';
 import 'package:it/main.dart';
 import 'package:it/widgets/custom_tabs.dart';
@@ -25,9 +28,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   TextEditingController joinNameController = TextEditingController();
   TextEditingController joinCodeController = TextEditingController();
 
+  String gameCode = "402342";
+
+  Color iconColor = styling.blue;
+  List<Color> iconColors = [
+    styling.blue,
+    styling.pink,
+    styling.orange,
+    styling.green,
+  ];
+
   static const _pressDuration = Duration(milliseconds: 80);
   bool buttonPressed = false;
   DateTime? _pressedAt;
+  bool isLoading = false;
 
   void _releaseButton() {
     if (!buttonPressed) return;
@@ -43,6 +57,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    String time = DateTime.now().millisecondsSinceEpoch.toString();
+    gameCode = DateTime.now().millisecondsSinceEpoch.toString().substring(
+      time.length - 6,
+      time.length,
+    );
+    setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
@@ -52,10 +78,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         body: SingleChildScrollView(
           child: SizedBox(
             width: double.infinity,
-            height: MediaQuery.of(context).size.height,
 
             child: Padding(
-              padding: const EdgeInsets.only(left: 24.0, right: 24),
+              padding: const EdgeInsets.only(left: 24.0, right: 24, bottom: 24),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.start,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -127,6 +152,68 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       FancyInputField(controller: newEmojiController),
       const SizedBox(height: 32),
       Text(
+        "PICK A COLOR FOR YOUR ICON",
+        style: styling.bodyFont.copyWith(
+          fontSize: 14,
+          fontWeight: FontWeight.bold,
+          color: styling.blue,
+        ),
+      ),
+      const SizedBox(height: 8),
+      SizedBox(
+        width: MediaQuery.of(context).size.width,
+        child: Row(
+          children: [
+            SizedBox(
+              height: 40,
+              width: iconColors.length * 52 - 12,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: iconColors.length,
+                separatorBuilder: (context, index) => const SizedBox(width: 12),
+                itemBuilder: (context, index) {
+                  Color color = iconColors[index];
+                  return GestureDetector(
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      setState(() {
+                        iconColor = color;
+                      });
+                    },
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: iconColor == color
+                              ? styling.white
+                              : styling.black,
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            Spacer(),
+            PlayerIcon(
+              player: MiniPlayer(
+                name: "You",
+                icon: newEmojiController.text,
+                color: iconColor,
+              ),
+              size: 75,
+              iconSize: 75 / 2,
+            ),
+            Spacer(),
+          ],
+        ),
+      ),
+      const SizedBox(height: 32),
+      Text(
         "WHAT SHOULD WE CALL YOU?",
         style: styling.bodyFont.copyWith(
           fontSize: 14,
@@ -162,7 +249,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 child: SizedBox(
                   width: double.infinity,
                   child: Text(
-                    "402342",
+                    gameCode,
                     textAlign: TextAlign.center,
                     style: styling.numberFont.copyWith(
                       fontSize: 18,
@@ -175,7 +262,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
             const SizedBox(width: 16),
             IconButton(
-              onPressed: () {},
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: gameCode));
+                SnackBar snackBar = SnackBar(
+                  content: Text("Game code copied to clipboard!"),
+                  backgroundColor: styling.blue,
+                );
+                ScaffoldMessenger.of(context).showSnackBar(snackBar);
+              },
               icon: Icon(Icons.copy, color: styling.blue),
             ),
           ],
@@ -195,7 +289,78 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           _releaseButton();
         },
         onTapCancel: _releaseButton,
-        onTap: () {
+        onTap: () async {
+          if (isLoading) return;
+          if (gameNameController.text.isEmpty ||
+              newEmojiController.text.isEmpty ||
+              newNameController.text.isEmpty) {
+            SnackBar snackBar = SnackBar(
+              content: Text("Please fill out all fields!"),
+              backgroundColor: styling.blue,
+            );
+            ScaffoldMessenger.of(context).showSnackBar(snackBar);
+            return;
+          }
+
+          //Validate one emoji put in emoji controller
+          if (newEmojiController.text.runes.length != 1) {
+            SnackBar snackBar = SnackBar(
+              content: Text("Please enter a single emoji!"),
+              backgroundColor: styling.blue,
+            );
+            ScaffoldMessenger.of(context).showSnackBar(snackBar);
+            return;
+          }
+          final emojiRegex = RegExp(
+            r'[\u{1F300}-\u{1F5FF}]|' // Misc Symbols and Pictographs
+            r'[\u{1F600}-\u{1F64F}]|' // Emoticons
+            r'[\u{1F680}-\u{1F6FF}]|' // Transport and Map
+            r'[\u{1F700}-\u{1F77F}]|' // Alchemical Symbols
+            r'[\u{1F780}-\u{1F7FF}]|' // Geometric Shapes Extended
+            r'[\u{1F800}-\u{1F8FF}]|' // Supplemental Arrows-C
+            r'[\u{1F900}-\u{1F9FF}]|' // Supplemental Symbols and Pictographs
+            r'[\u{1FA00}-\u{1FA6F}]|' // Chess Symbols, Symbols and Pictographs Extended-A
+            r'[\u{1FA70}-\u{1FAFF}]|' // Symbols and Pictographs Extended-A
+            r'[\u{2600}-\u{26FF}]|' // Misc symbols
+            r'[\u{2700}-\u{27BF}]', // Dingbats
+            unicode: true,
+          );
+          if (!emojiRegex.hasMatch(newEmojiController.text)) {
+            SnackBar snackBar = SnackBar(
+              content: Text("Please enter a valid emoji!"),
+              backgroundColor: styling.blue,
+            );
+            ScaffoldMessenger.of(context).showSnackBar(snackBar);
+            return;
+          }
+          setState(() {
+            isLoading = true;
+          });
+          Player newPlayer = Player(
+            name: newNameController.text,
+            icon: newEmojiController.text,
+            color: iconColor,
+            id: Auth().getUserId()!,
+            isHost: true,
+          );
+
+          Game newGame = Game(
+            name: gameNameController.text,
+            joinCode: int.parse(gameCode),
+            players: [newPlayer],
+            id: "",
+            tags: [],
+            createdAt: DateTime.now(),
+          );
+
+          newGame = await Database().createGame(newGame);
+          await SharedPrefs.setGameIdSF(newGame.id);
+          gameNotifier.value = newGame;
+          playerNotifier.value = newGame.getPlayerFromId(Auth().getUserId()!);
+          Database().gameDataStream();
+
+          print("Game created with ID: ${newGame.id}");
+
           router.pushReplacement("/");
         },
 
@@ -248,6 +413,68 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       FancyInputField(controller: joinEmojiController),
       const SizedBox(height: 32),
       Text(
+        "PICK A COLOR FOR YOUR ICON",
+        style: styling.bodyFont.copyWith(
+          fontSize: 14,
+          fontWeight: FontWeight.bold,
+          color: styling.blue,
+        ),
+      ),
+      const SizedBox(height: 8),
+      SizedBox(
+        width: MediaQuery.of(context).size.width,
+        child: Row(
+          children: [
+            SizedBox(
+              height: 40,
+              width: iconColors.length * 52 - 12,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: iconColors.length,
+                separatorBuilder: (context, index) => const SizedBox(width: 12),
+                itemBuilder: (context, index) {
+                  Color color = iconColors[index];
+                  return GestureDetector(
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      setState(() {
+                        iconColor = color;
+                      });
+                    },
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: iconColor == color
+                              ? styling.white
+                              : styling.black,
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            Spacer(),
+            PlayerIcon(
+              player: MiniPlayer(
+                name: "You",
+                icon: joinEmojiController.text,
+                color: iconColor,
+              ),
+              size: 75,
+              iconSize: 75 / 2,
+            ),
+            Spacer(),
+          ],
+        ),
+      ),
+      const SizedBox(height: 32),
+      Text(
         "WHAT SHOULD WE CALL YOU?",
         style: styling.bodyFont.copyWith(
           fontSize: 14,
@@ -282,7 +509,75 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           _releaseButton();
         },
         onTapCancel: _releaseButton,
-        onTap: () {
+        onTap: () async {
+          if (joinCodeController.text.isEmpty ||
+              joinEmojiController.text.isEmpty ||
+              joinNameController.text.isEmpty) {
+            SnackBar snackBar = SnackBar(
+              content: Text("Please fill out all fields!"),
+              backgroundColor: styling.blue,
+            );
+            ScaffoldMessenger.of(context).showSnackBar(snackBar);
+            return;
+          }
+
+          //Validate one emoji put in emoji controller
+          if (joinEmojiController.text.runes.length != 1) {
+            SnackBar snackBar = SnackBar(
+              content: Text("Please enter a single emoji!"),
+              backgroundColor: styling.blue,
+            );
+            ScaffoldMessenger.of(context).showSnackBar(snackBar);
+            return;
+          }
+          final emojiRegex = RegExp(
+            r'[\u{1F300}-\u{1F5FF}]|' // Misc Symbols and Pictographs
+            r'[\u{1F600}-\u{1F64F}]|' // Emoticons
+            r'[\u{1F680}-\u{1F6FF}]|' // Transport and Map
+            r'[\u{1F700}-\u{1F77F}]|' // Alchemical Symbols
+            r'[\u{1F780}-\u{1F7FF}]|' // Geometric Shapes Extended
+            r'[\u{1F800}-\u{1F8FF}]|' // Supplemental Arrows-C
+            r'[\u{1F900}-\u{1F9FF}]|' // Supplemental Symbols and Pictographs
+            r'[\u{1FA00}-\u{1FA6F}]|' // Chess Symbols, Symbols and Pictographs Extended-A
+            r'[\u{1FA70}-\u{1FAFF}]|' // Symbols and Pictographs Extended-A
+            r'[\u{2600}-\u{26FF}]|' // Misc symbols
+            r'[\u{2700}-\u{27BF}]', // Dingbats
+            unicode: true,
+          );
+          if (!emojiRegex.hasMatch(joinEmojiController.text)) {
+            SnackBar snackBar = SnackBar(
+              content: Text("Please enter a valid emoji!"),
+              backgroundColor: styling.blue,
+            );
+            ScaffoldMessenger.of(context).showSnackBar(snackBar);
+            return;
+          }
+          Game? joinedGame = await Database().joinGame(
+            joinCodeController.text,
+            Player(
+              name: joinNameController.text,
+              icon: joinEmojiController.text,
+              color: iconColor,
+              id: Auth().getUserId()!,
+            ),
+          );
+
+          if (joinedGame == null) {
+            SnackBar snackBar = SnackBar(
+              content: Text("Game not found! Please check your game code."),
+              backgroundColor: styling.blue,
+            );
+            ScaffoldMessenger.of(context).showSnackBar(snackBar);
+            return;
+          }
+
+          await SharedPrefs.setGameIdSF(joinedGame.id);
+          gameNotifier.value = joinedGame;
+          playerNotifier.value = joinedGame.getPlayerFromId(
+            Auth().getUserId()!,
+          );
+          Database().gameDataStream();
+          print("Joined game with ID: ${joinedGame.id}");
           router.pushReplacement("/");
         },
 

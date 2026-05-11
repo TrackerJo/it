@@ -17,4 +17,5 @@ class Styling {
   Color pink = Color(0xFFf46197);
   Color darkPink = Color(0xFFc43a73);
   Color white = Colors.white;
+  Color black = Colors.black;
 }

@@ -67,7 +67,9 @@ class _TagSheetState extends State<TagSheet> {
               ),
               GestureDetector(
                 onTap: () {
-                  game.tagPlayer(widget.taggedPlayer.id);
+                  gameNotifier.value.tagPlayer(widget.taggedPlayer.id);
+                  
+                  gameNotifier.refresh();
 
                   router.pushReplacement('/gotcha');
                 },

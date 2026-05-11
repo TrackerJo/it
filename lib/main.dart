@@ -1,7 +1,10 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:it/api/auth.dart';
+import 'package:it/api/database.dart';
+import 'package:it/api/shared_prefs.dart';
 
 import 'package:it/constants.dart';
 import 'package:it/firebase_options.dart';
@@ -54,8 +57,15 @@ final GoRouter router = GoRouter(
 
 final Styling styling = Styling();
 
-final Game game = createTestGame();
-final Player player = game.getPlayerFromId("p1");
+class GameNotifier extends ValueNotifier<Game> {
+  GameNotifier(super.value);
+  void refresh() => notifyListeners();
+}
+
+final GameNotifier gameNotifier = GameNotifier(createTestGame());
+final ValueNotifier<Player> playerNotifier = ValueNotifier<Player>(
+  gameNotifier.value.getPlayerFromId("p1"),
+);
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
@@ -66,10 +76,25 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   Future<void> init() async {
-    bool loggedIn = Auth().isUserLoggedIn();
-    if (!loggedIn) {
-      router.push("/welcome");
-    }
+    String? gameId = await SharedPrefs.getGameIdSF();
+
+    Auth().authStateChanges().listen((user) async {
+      if (user == null) {
+        router.push("/welcome");
+      } else if (gameId == null) {
+        router.pushReplacement("/onboarding");
+      } else {
+        Game fetchedGame = await Database().getGame(gameId);
+        gameNotifier.value = fetchedGame;
+        playerNotifier.value = fetchedGame.getPlayerFromId(
+          Auth().getUserId()!,
+        );
+        print(
+          "Fetched game with id ${fetchedGame.id} and ${fetchedGame.players.length} players and hasStarted: ${fetchedGame.isStarted}",
+        );
+        Database().gameDataStream();
+      }
+    });
   }
 
   @override

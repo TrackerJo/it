@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:it/api/database.dart';
 import 'package:it/constants.dart';
 import 'package:it/main.dart';
 import 'package:it/widgets/player_icon.dart';
@@ -25,7 +26,12 @@ class _ItScreenState extends State<ItScreen>
   late final AnimationController _wiggleController;
 
   void _updateTimer() {
-    final elapsed = DateTime.now().difference(game.latestTag.timestamp);
+    final game = gameNotifier.value;
+    if (!game.isStarted) return;
+    final elapsed = DateTime.now().difference(
+      game.latestTag?.timestamp ?? game.startedAt!,
+    );
+    if (!mounted) return;
     setState(() {
       timerText = _formatElapsed(elapsed);
     });
@@ -45,28 +51,43 @@ class _ItScreenState extends State<ItScreen>
     return "${d.inSeconds}s";
   }
 
+  void _onGameChanged() {
+    final game = gameNotifier.value;
+    if (!game.isStarted) {
+      _timer?.cancel();
+      _timer = null;
+      return;
+    }
+    if (game.latestTag == null) {
+      taggedBy = null;
+    } else {
+      taggedBy = game.getPlayerFromId(game.latestTag!.taggerPlayerId);
+    }
+
+    _timer ??= Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => _updateTimer(),
+    );
+    _updateTimer();
+  }
+
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
-    taggedBy = game.getPlayerFromId(game.latestTag.taggerPlayerId);
-    setState(() {});
-    _updateTimer();
-    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
-      _updateTimer();
-    });
     _wiggleController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1600),
     )..repeat();
+    gameNotifier.addListener(_onGameChanged);
+    _onGameChanged();
   }
 
   @override
   void dispose() {
-    // TODO: implement dispose
+    gameNotifier.removeListener(_onGameChanged);
     _wiggleController.dispose();
-    super.dispose();
     _timer?.cancel();
+    super.dispose();
   }
 
   void _releaseButton() {
@@ -84,10 +105,137 @@ class _ItScreenState extends State<ItScreen>
 
   @override
   Widget build(BuildContext context) {
-    return player.isIt ? _buildIt(context) : _buildOtherIt(context);
+    return ListenableBuilder(
+      listenable: Listenable.merge([gameNotifier, playerNotifier]),
+      builder: (context, _) {
+        final game = gameNotifier.value;
+        final player = playerNotifier.value;
+        return !game.isStarted
+            ? _buildWaiting(context)
+            : player.isIt
+            ? _buildIt(context)
+            : _buildOtherIt(context);
+      },
+    );
+  }
+
+  Widget _buildWaiting(BuildContext context) {
+    final player = playerNotifier.value;
+    return Scaffold(
+      backgroundColor: styling.green,
+
+      body: SizedBox(
+        width: double.infinity,
+        height: MediaQuery.of(context).size.height,
+
+        child: Column(
+          mainAxisAlignment: .center,
+          children: [
+            SizedBox(height: MediaQuery.of(context).padding.top + 16),
+
+            Spacer(),
+
+            SizedBox(
+              width: MediaQuery.of(context).size.width,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  "Waiting for the game to start...",
+
+                  style: styling.headerFont.copyWith(
+                    fontSize: 60,
+                    fontWeight: FontWeight.w400,
+                    height: 1.2,
+                    color: styling.blue,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+
+            Spacer(),
+            if (player.isHost && gameNotifier.value.players.length >= 2)
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: GestureDetector(
+                  onTapDown: (details) {
+                    HapticFeedback.lightImpact();
+                    setState(() {
+                      buttonPressed = true;
+                      _pressedAt = DateTime.now();
+                    });
+                  },
+                  onTapUp: (details) {
+                    HapticFeedback.lightImpact();
+                    _releaseButton();
+                  },
+                  onTapCancel: _releaseButton,
+                  onTap: () {
+                    gameNotifier.value.startGame();
+                    gameNotifier.refresh();
+                    Database().updateGame(gameNotifier.value);
+                  },
+
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 80),
+                    curve: Curves.easeOut,
+                    transform: Matrix4.translationValues(
+                      0,
+                      buttonPressed ? 5 : 0,
+                      0,
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 22,
+                      vertical: 16,
+                    ),
+                    width: double.infinity,
+                    decoration: ShapeDecoration(
+                      color: styling.pink,
+                      shape: StadiumBorder(),
+                      shadows: [
+                        if (!buttonPressed)
+                          BoxShadow(
+                            color: styling.darkPink,
+                            offset: Offset(0, 5),
+                            blurRadius: 0,
+                          ),
+                      ],
+                    ),
+                    child: Text(
+                      "Start Game",
+                      style: styling.bodyFont.copyWith(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        color: styling.white,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              )
+            else if (player.isHost)
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  "Waiting for at least 1 more player to join.",
+                  style: styling.bodyFont.copyWith(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: styling.blueMute,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+
+            SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildOtherIt(BuildContext context) {
+    final game = gameNotifier.value;
     return Scaffold(
       backgroundColor: styling.green,
 
@@ -121,7 +269,7 @@ class _ItScreenState extends State<ItScreen>
                 );
               },
               child: PlayerIcon(
-                player: game.itPlayer,
+                player: game.itPlayer!,
                 size: 200,
                 iconSize: 100,
               ),
@@ -131,7 +279,7 @@ class _ItScreenState extends State<ItScreen>
               child: FittedBox(
                 fit: BoxFit.scaleDown,
                 child: Text(
-                  game.itPlayer.name,
+                  game.itPlayer!.name,
                   maxLines: 1,
                   style: styling.headerFont.copyWith(
                     fontSize: 88,
@@ -142,26 +290,27 @@ class _ItScreenState extends State<ItScreen>
                 ),
               ),
             ),
-            RichText(
-              text: TextSpan(
-                text: "tagged by ",
-                style: styling.bodyFont.copyWith(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: styling.blueMute,
-                ),
-                children: [
-                  TextSpan(
-                    text: taggedBy?.name ?? "Unknown",
-                    style: styling.bodyFont.copyWith(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w900,
-                      color: styling.blue,
-                    ),
+            if (taggedBy != null)
+              RichText(
+                text: TextSpan(
+                  text: "tagged by ",
+                  style: styling.bodyFont.copyWith(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: styling.blueMute,
                   ),
-                ],
+                  children: [
+                    TextSpan(
+                      text: taggedBy?.name ?? "Unknown",
+                      style: styling.bodyFont.copyWith(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                        color: styling.blue,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
             const SizedBox(height: 24),
             Text(
               "They've been it for",
@@ -239,7 +388,7 @@ class _ItScreenState extends State<ItScreen>
                     ],
                   ),
                   child: Text(
-                    "Boo ${game.itPlayer.name}",
+                    "Boo ${game.itPlayer!.name}",
                     style: styling.bodyFont.copyWith(
                       fontSize: 24,
                       fontWeight: FontWeight.w700,
@@ -324,7 +473,7 @@ class _ItScreenState extends State<ItScreen>
             ),
             const SizedBox(height: 16),
             Text(
-              "${taggedBy?.name ?? ""} tagged you. Get rid of it before someone makes it weird.",
+              "${taggedBy != null ? "${taggedBy?.name ?? ""} tagged you. " : ""}Get rid of it before someone makes it weird.",
               style: styling.bodyFont.copyWith(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -349,7 +498,7 @@ class _ItScreenState extends State<ItScreen>
                 },
                 onTapCancel: _releaseButton,
                 onTap: () {
-                  router.push("/welcome");
+                  router.push("/tag");
                 },
 
                 child: AnimatedContainer(

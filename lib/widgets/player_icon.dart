@@ -3,7 +3,7 @@ import 'package:it/constants.dart';
 import 'package:it/main.dart';
 
 class PlayerIcon extends StatelessWidget {
-  final Player player;
+  final MiniPlayer player;
   final double iconSize;
   final double size;
   final Color? borderColor;
