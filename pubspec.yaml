@@ -46,6 +46,7 @@ dependencies:
   firebase_remote_config: ^6.4.0
   flutter_native_splash: ^2.4.7
   shared_preferences: ^2.5.5
+  overlay_support: ^2.1.0
 
 dev_dependencies:
   flutter_test:

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:it/api/database.dart';
+import 'package:it/main.dart';
+import 'package:it/widgets/in_app_notification.dart';
 
 enum Screens { it, players, records, me }
 
@@ -171,7 +173,7 @@ class Game {
     return tags.where((tag) => tag.taggerPlayerId == playerId).length;
   }
 
-  int getPlayerTaggedCount(String playerId) { 
+  int getPlayerTaggedCount(String playerId) {
     return tags.where((tag) => tag.taggedPlayerId == playerId).length;
   }
 
@@ -508,4 +510,238 @@ Game createTestGame() {
     joinCode: 1234,
     name: "Sophmores are Kid's?",
   );
+}
+
+enum NotificationType {
+  taunt,
+  tag,
+  gameStart;
+
+  @override
+  String toString() {
+    return name;
+  }
+
+  static NotificationType fromString(String type) {
+    return NotificationType.values.firstWhere((e) => e.toString() == type);
+  }
+}
+
+abstract class Notif {
+  final int id;
+  final NotificationType type;
+  final String? title;
+  final String? body;
+  final List<String> targetIds;
+
+  Notif({
+    required this.id,
+    required this.type,
+    this.title,
+    this.body,
+    required this.targetIds,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'type': type.toString(),
+
+      'title': title,
+      'body': body,
+
+      'targetIds': targetIds,
+      'thread': type.toString(),
+    };
+  }
+
+  factory Notif.fromMap(Map<String, dynamic> map) {
+    NotificationType type = NotificationType.fromString(map['type']);
+    switch (type) {
+      case NotificationType.taunt:
+        return TauntNotification.fromMap(map);
+      case NotificationType.tag:
+        return TagNotification.fromMap(map);
+      case NotificationType.gameStart:
+        return GameStartNotification.fromMap(map);
+    }
+  }
+
+  InAppNotification toInAppNotification() {
+    return InAppNotification(title: title ?? "", body: body ?? "");
+  }
+}
+
+class TauntNotification extends Notif {
+  final String taunterName;
+
+  TauntNotification({
+    required int id,
+
+    required List<String> targetIds,
+    required this.taunterName,
+  }) : super(id: id, type: NotificationType.taunt, targetIds: targetIds);
+
+  Map<String, String> _generateTaunt(String taunterName) {
+    final List<Map<String, String>> tagTauntNotifications = [
+      {
+        "title": "You’re It 😈",
+        "message":
+            "The campus is big… but somehow everyone is still dodging you.",
+      },
+      {
+        "title": "Tag Them Already",
+        "message":
+            "$taunterName has been waiting. Tag someone before they start thinking you’re a statue.",
+      },
+      {
+        "title": "Skill Issue?",
+        "message":
+            "They’re not that fast — you’re just making them look athletic.",
+      },
+      {
+        "title": "Certified Menace Needed",
+        "message":
+            "Someone’s out there walking calmly because they know you won’t catch them.",
+      },
+      {
+        "title": "The Hunt Continues",
+        "message":
+            "$taunterName is keeping score. Every second you’re it, their ego gets stronger.",
+      },
+      {
+        "title": "Campus Predator Mode",
+        "message": "Lock in. Someone near you is way too comfortable.",
+      },
+      {
+        "title": "You Had One Job",
+        "message": "Run. Tag. Transfer the shame — $taunterName is watching.",
+      },
+      {
+        "title": "Still It? Rough.",
+        "message":
+            "At this point, even the squirrels are judging your footwork.",
+      },
+      {
+        "title": "$taunterName Sends Regards",
+        "message": "They’re not even hiding. Go get them.",
+      },
+      {
+        "title": "$taunterName Is Laughing",
+        "message": "Out loud. In public. About you specifically.",
+      },
+      {
+        "title": "A Message From $taunterName",
+        "message": "“Catch me. I dare you.”",
+      },
+    ];
+
+    return tagTauntNotifications[DateTime.now().millisecondsSinceEpoch %
+        tagTauntNotifications.length];
+  }
+
+  @override
+  InAppNotification toInAppNotification() {
+    Map<String, String> taunt = _generateTaunt(taunterName);
+    return InAppNotification(
+      title: taunt["title"]!,
+      body: taunt["message"]!,
+      icon: Icons.campaign,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    final base = super.toMap();
+    return {...base, 'taunterName': taunterName};
+  }
+
+  factory TauntNotification.fromMap(Map<String, dynamic> map) {
+    return TauntNotification(
+      id: map['id'],
+      targetIds: List<String>.from(map['targetIds']),
+      taunterName: map['taunterName'],
+    );
+  }
+}
+
+class TagNotification extends Notif {
+  final String taggerName;
+  final String taggedName;
+
+  TagNotification({
+    required int id,
+    required List<String> targetIds,
+    required this.taggerName,
+    required this.taggedName,
+  }) : super(id: id, type: NotificationType.tag, targetIds: targetIds);
+
+  @override
+  InAppNotification toInAppNotification() {
+    if (playerNotifier.value!.name == taggedName) {
+      return InAppNotification(
+        title: "You Were Tagged! 😢",
+        body: "$taggerName just tagged you. Time to find a new target!",
+        icon: Icons.back_hand_outlined,
+      );
+    } else {
+      return InAppNotification(
+        title: "Someone Got Tagged! 👀",
+        body: "$taggerName just tagged $taggedName.",
+        icon: Icons.back_hand_outlined,
+      );
+    }
+  }
+
+  Map<String, dynamic> toMap() {
+    final base = super.toMap();
+    return {...base, 'taggerName': taggerName, 'taggedName': taggedName};
+  }
+
+  factory TagNotification.fromMap(Map<String, dynamic> map) {
+    return TagNotification(
+      id: map['id'],
+      targetIds: List<String>.from(map['targetIds']),
+      taggerName: map['taggerName'],
+      taggedName: map['taggedName'],
+    );
+  }
+}
+
+class GameStartNotification extends Notif {
+  final String gameName;
+  final String firstItPlayerName;
+
+  GameStartNotification({
+    required int id,
+    required List<String> targetIds,
+    required this.gameName,
+    required this.firstItPlayerName,
+  }) : super(id: id, type: NotificationType.gameStart, targetIds: targetIds);
+
+  @override
+  InAppNotification toInAppNotification() {
+    return InAppNotification(
+      title: "Game Started! 🎉",
+      body: "The game \"$gameName\" has started. $firstItPlayerName is It!",
+      icon: Icons.play_arrow_rounded,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    final base = super.toMap();
+    return {
+      ...base,
+      'gameName': gameName,
+      'firstItPlayerName': firstItPlayerName,
+    };
+  }
+
+  factory GameStartNotification.fromMap(Map<String, dynamic> map) {
+    return GameStartNotification(
+      id: map['id'],
+      targetIds: List<String>.from(map['targetIds']),
+      gameName: map['gameName'],
+      firstItPlayerName: map['firstItPlayerName'],
+    );
+  }
 }

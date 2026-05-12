@@ -17,6 +17,7 @@ import 'package:it/screens/settings_screen.dart';
 import 'package:it/screens/tag_screen.dart';
 import 'package:it/screens/welcome_sreen.dart';
 import 'package:it/styling.dart';
+import 'package:overlay_support/overlay_support.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -118,11 +119,13 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      title: 'It!',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(),
-      routerConfig: router,
+    return OverlaySupport(
+      child: MaterialApp.router(
+        title: 'It!',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(),
+        routerConfig: router,
+      ),
     );
   }
 }

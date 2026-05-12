@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:it/api/notifications.dart';
 import 'package:it/constants.dart';
 import 'package:it/main.dart';
 import 'package:it/screens/it_screen.dart';
@@ -20,6 +21,13 @@ class _HomeScreenState extends State<HomeScreen> {
   Screens activeScreen = Screens.it;
   PageController pageController = PageController();
   bool changingFromNavBar = false;
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    PushNotifications().initNotifications();
+  }
+
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<Game?>(

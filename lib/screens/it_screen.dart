@@ -7,6 +7,7 @@ import 'package:it/api/database.dart';
 import 'package:it/constants.dart';
 import 'package:it/main.dart';
 import 'package:it/widgets/dotted_rounded_border.dart';
+import 'package:it/widgets/in_app_notification.dart';
 import 'package:it/widgets/player_icon.dart';
 
 class ItScreen extends StatefulWidget {
@@ -453,9 +454,32 @@ class _ItScreenState extends State<ItScreen>
                 },
                 onTapUp: (details) {
                   HapticFeedback.lightImpact();
+
                   _releaseButton();
                 },
                 onTapCancel: _releaseButton,
+                onTap: () {
+                  // TauntNotification notification = TauntNotification(
+                  //   id: 1,
+                  //   targetIds: [playerNotifier.value!.name],
+                  //   taunterName: playerNotifier.value!.name,
+                  // );
+                  // TagNotification notification = TagNotification(
+                  //   id: 1,
+                  //   targetIds: [game.itPlayer!.id],
+                  //   taggedName: playerNotifier.value!.name,
+                  //   taggerName: game.itPlayer!.name,
+                  // );
+                  GameStartNotification notification = GameStartNotification(
+                    id: 1,
+                    targetIds: gameNotifier.value!.players
+                        .map((p) => p.id)
+                        .toList(),
+                    gameName: gameNotifier.value!.name,
+                    firstItPlayerName: gameNotifier.value!.itPlayer!.name,
+                  );
+                  notification.toInAppNotification().present(context);
+                },
 
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 80),
