@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:it/api/auth.dart';
+import 'package:it/api/database.dart';
+import 'package:it/api/shared_prefs.dart';
 import 'package:it/constants.dart';
 import 'package:it/main.dart';
 import 'package:it/widgets/custom_tabs.dart';
@@ -350,6 +352,15 @@ class _LoginScreenState extends State<LoginScreen> {
                 backgroundColor: styling.pink,
               ),
             );
+            return;
+          }
+
+          Game? game = await Database().getGamePlayersIn(Auth().getUserId()!);
+          if (game != null) {
+            await SharedPrefs.setGameIdSF(game.id);
+            gameNotifier.value = game;
+            playerNotifier.value = game.getPlayerFromId(Auth().getUserId()!);
+            router.pushReplacement("/home");
             return;
           }
 

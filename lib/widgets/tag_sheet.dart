@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:it/constants.dart';
 import 'package:it/main.dart';
 import 'package:it/widgets/player_icon.dart';
@@ -46,6 +47,7 @@ class _TagSheetState extends State<TagSheet> {
             children: [
               GestureDetector(
                 onTap: () {
+                  HapticFeedback.mediumImpact();
                   router.pop();
                 },
                 child: Container(
@@ -67,8 +69,9 @@ class _TagSheetState extends State<TagSheet> {
               ),
               GestureDetector(
                 onTap: () {
-                  gameNotifier.value.tagPlayer(widget.taggedPlayer.id);
-                  
+                  HapticFeedback.mediumImpact();
+                  gameNotifier.value!.tagPlayer(widget.taggedPlayer.id);
+
                   gameNotifier.refresh();
 
                   router.pushReplacement('/gotcha');

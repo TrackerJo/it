@@ -171,7 +171,7 @@ class Game {
     return tags.where((tag) => tag.taggerPlayerId == playerId).length;
   }
 
-  int getPlayerTaggedCount(String playerId) {
+  int getPlayerTaggedCount(String playerId) { 
     return tags.where((tag) => tag.taggedPlayerId == playerId).length;
   }
 
@@ -362,22 +362,26 @@ class Game {
   Duration getPlayerLongestSafeDuration(String playerId) {
     final sorted = [...tags]
       ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
-    final Map<String, DateTime> taggedAt = {};
+
+    final bool startedAsIt =
+        sorted.isNotEmpty && sorted.first.taggerPlayerId == playerId;
+    DateTime? safeStart = startedAsIt ? null : startedAt;
     Duration longestDuration = Duration.zero;
 
     for (final tag in sorted) {
       if (tag.taggedPlayerId == playerId) {
-        final start = taggedAt[playerId] ?? startedAt;
-        final dur = tag.timestamp.difference(start!);
-        if (dur > longestDuration) longestDuration = dur;
-        taggedAt.remove(playerId);
+        if (safeStart != null) {
+          final dur = tag.timestamp.difference(safeStart);
+          if (dur > longestDuration) longestDuration = dur;
+          safeStart = null;
+        }
+      } else if (tag.taggerPlayerId == playerId) {
+        safeStart = tag.timestamp;
       }
-      taggedAt[tag.taggedPlayerId] = tag.timestamp;
     }
 
-    final ongoingStart = taggedAt[playerId];
-    if (ongoingStart != null) {
-      final dur = DateTime.now().difference(ongoingStart);
+    if (safeStart != null) {
+      final dur = DateTime.now().difference(safeStart);
       if (dur > longestDuration) longestDuration = dur;
     }
 
@@ -418,6 +422,15 @@ class Game {
     }
 
     return fastest;
+  }
+
+  int getPlayerTagByPlayerCount(String taggerId, String taggedId) {
+    return tags
+        .where(
+          (tag) =>
+              tag.taggerPlayerId == taggerId && tag.taggedPlayerId == taggedId,
+        )
+        .length;
   }
 
   void tagPlayer(String taggedId) {

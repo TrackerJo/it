@@ -24,10 +24,10 @@ class _MeScreenState extends State<MeScreen> {
   void _updateTimer() {
     final game = gameNotifier.value;
     final player = playerNotifier.value;
-    if (!game.isStarted) return;
+    if (!game!.isStarted) return;
     final elapsed = DateTime.now().difference(
-      game.getLastPlayerTag(player.id)?.timestamp ??
-          gameNotifier.value.startedAt!,
+      game.getLastPlayerTag(player!.id)?.timestamp ??
+          gameNotifier.value!.startedAt!,
     );
     if (!mounted) return;
     setState(() {
@@ -51,7 +51,7 @@ class _MeScreenState extends State<MeScreen> {
 
   void _onGameChanged() {
     final game = gameNotifier.value;
-    if (!game.isStarted) {
+    if (!game!.isStarted) {
       _timer?.cancel();
       _timer = null;
       return;
@@ -111,18 +111,28 @@ class _MeScreenState extends State<MeScreen> {
       builder: (context, _) {
         final game = gameNotifier.value;
         final player = playerNotifier.value;
-        final Player? playerNemesis = game.isStarted
-            ? game.getPlayerNemesis(player.id)
+        final Player? playerNemesis = game!.isStarted
+            ? game.getPlayerNemesis(player!.id)
             : null;
         final Player? playerFavoriteVictim = game.isStarted
-            ? game.getPlayerFavoriteVictim(player.id)
+            ? game.getPlayerFavoriteVictim(player!.id)
             : null;
         final Duration? longestItStint = game.isStarted
-            ? game.getPlayerLongestItDuration(player.id)
+            ? game.getPlayerLongestItDuration(player!.id)
             : null;
         final Duration? longestSafeStreak = game.isStarted
-            ? game.getPlayerLongestSafeDuration(player.id)
+            ? game.getPlayerLongestSafeDuration(player!.id)
             : null;
+        final int taggedByNemesisCount = playerNemesis != null
+            ? game.getPlayerTagByPlayerCount(playerNemesis.id, player!.id)
+            : 0;
+
+        final int taggedPlayerCount = playerFavoriteVictim != null
+            ? game.getPlayerTagByPlayerCount(
+                player!.id,
+                playerFavoriteVictim.id,
+              )
+            : 0;
         return Scaffold(
           backgroundColor: styling.green,
 
@@ -164,8 +174,7 @@ class _MeScreenState extends State<MeScreen> {
                             },
                             onTapCancel: _releaseButton,
                             onTap: () {
-                              // Auth().signOut();
-                              router.push("/onboarding");
+                              router.push("/home/settings");
                             },
 
                             child: AnimatedContainer(
@@ -221,7 +230,7 @@ class _MeScreenState extends State<MeScreen> {
                             Row(
                               children: [
                                 PlayerIcon(
-                                  player: player,
+                                  player: player!,
                                   size: 80,
                                   iconSize: 40,
                                 ),
@@ -519,17 +528,36 @@ class _MeScreenState extends State<MeScreen> {
                                                         textAlign:
                                                             TextAlign.start,
                                                       ),
-                                                      Text(
-                                                        "tagged you 4 times",
-                                                        style: styling.bodyFont
-                                                            .copyWith(
-                                                              fontSize: 10,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w400,
-                                                              color: styling
-                                                                  .orange,
-                                                            ),
+                                                      SizedBox(
+                                                        width:
+                                                            playerFavoriteVictim !=
+                                                                null
+                                                            ? MediaQuery.of(
+                                                                        context,
+                                                                      ).size.width /
+                                                                      2 -
+                                                                  24 -
+                                                                  16 -
+                                                                  32 -
+                                                                  4 -
+                                                                  30
+                                                            : MediaQuery.of(
+                                                                    context,
+                                                                  ).size.width -
+                                                                  112,
+                                                        child: Text(
+                                                          "tagged you $taggedByNemesisCount ${taggedByNemesisCount == 1 ? "time" : "times"}",
+                                                          style: styling
+                                                              .bodyFont
+                                                              .copyWith(
+                                                                fontSize: 12,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w400,
+                                                                color: styling
+                                                                    .orange,
+                                                              ),
+                                                        ),
                                                       ),
                                                     ],
                                                   ),
@@ -597,21 +625,27 @@ class _MeScreenState extends State<MeScreen> {
                                                       ),
                                                       SizedBox(
                                                         width:
-                                                            MediaQuery.of(
-                                                                  context,
-                                                                ).size.width /
-                                                                2 -
-                                                            24 -
-                                                            16 -
-                                                            32 -
-                                                            4 -
-                                                            20,
+                                                            playerNemesis !=
+                                                                null
+                                                            ? MediaQuery.of(
+                                                                        context,
+                                                                      ).size.width /
+                                                                      2 -
+                                                                  24 -
+                                                                  16 -
+                                                                  32 -
+                                                                  4 -
+                                                                  20
+                                                            : MediaQuery.of(
+                                                                    context,
+                                                                  ).size.width -
+                                                                  112,
                                                         child: Text(
-                                                          "you tagged them 3 times",
+                                                          "you tagged them $taggedPlayerCount ${taggedPlayerCount == 1 ? "time" : "times"}",
                                                           style: styling
                                                               .bodyFont
                                                               .copyWith(
-                                                                fontSize: 10,
+                                                                fontSize: 12,
                                                                 fontWeight:
                                                                     FontWeight
                                                                         .w400,

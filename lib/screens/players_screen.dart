@@ -19,7 +19,7 @@ class _PlayersScreenState extends State<PlayersScreen> {
 
   void _updateTimer() {
     final game = gameNotifier.value;
-    if (!game.isStarted) return;
+    if (!game!.isStarted) return;
     final elapsed = DateTime.now().difference(
       game.latestTag?.timestamp ?? game.startedAt!,
     );
@@ -45,7 +45,7 @@ class _PlayersScreenState extends State<PlayersScreen> {
 
   void _onGameChanged() {
     final game = gameNotifier.value;
-    if (!game.isStarted) {
+    if (!game!.isStarted) {
       _timer?.cancel();
       _timer = null;
       return;
@@ -73,7 +73,7 @@ class _PlayersScreenState extends State<PlayersScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<Game>(
+    return ValueListenableBuilder<Game?>(
       valueListenable: gameNotifier,
       builder: (context, game, _) => Scaffold(
         backgroundColor: styling.green,
@@ -99,7 +99,7 @@ class _PlayersScreenState extends State<PlayersScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  if (game.itPlayer != null)
+                  if (game!.itPlayer != null)
                     Container(
                       width: double.infinity,
                       height: 106,

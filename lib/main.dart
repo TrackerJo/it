@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -10,9 +9,11 @@ import 'package:it/constants.dart';
 import 'package:it/firebase_options.dart';
 import 'package:it/screens/gotcha_screen.dart';
 import 'package:it/screens/home_screen.dart';
+import 'package:it/screens/loading_screen.dart';
 
 import 'package:it/screens/login_screen.dart';
 import 'package:it/screens/onboarding_screen.dart';
+import 'package:it/screens/settings_screen.dart';
 import 'package:it/screens/tag_screen.dart';
 import 'package:it/screens/welcome_sreen.dart';
 import 'package:it/styling.dart';
@@ -28,10 +29,22 @@ void main() async {
 
 final GoRouter router = GoRouter(
   routes: [
+    GoRoute(path: '/', builder: (context, state) => LoadingScreen()),
     GoRoute(
-      path: '/',
-      builder: (context, state) => HomeScreen(),
-      routes: [GoRoute(path: 'tag', builder: (context, state) => TagScreen())],
+      path: '/home',
+      pageBuilder: (context, state) => CustomTransitionPage<void>(
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+        child: HomeScreen(),
+        transitionsBuilder: (context, animation, secondary, child) => child,
+      ),
+      routes: [
+        GoRoute(path: 'tag', builder: (context, state) => TagScreen()),
+        GoRoute(
+          path: 'settings',
+          builder: (context, state) => SettingsScreen(),
+        ),
+      ],
     ),
 
     GoRoute(
@@ -50,22 +63,28 @@ final GoRouter router = GoRouter(
             FadeTransition(opacity: animation, child: child),
       ),
     ),
-    GoRoute(path: '/welcome', builder: (context, state) => WelcomeSreen()),
+    GoRoute(
+      path: '/welcome',
+      pageBuilder: (context, state) => CustomTransitionPage<void>(
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+        child: WelcomeSreen(),
+        transitionsBuilder: (context, animation, secondary, child) => child,
+      ),
+    ),
     GoRoute(path: '/login', builder: (context, state) => LoginScreen()),
   ],
 );
 
 final Styling styling = Styling();
 
-class GameNotifier extends ValueNotifier<Game> {
+class GameNotifier extends ValueNotifier<Game?> {
   GameNotifier(super.value);
   void refresh() => notifyListeners();
 }
 
-final GameNotifier gameNotifier = GameNotifier(createTestGame());
-final ValueNotifier<Player> playerNotifier = ValueNotifier<Player>(
-  gameNotifier.value.getPlayerFromId("p1"),
-);
+final GameNotifier gameNotifier = GameNotifier(null);
+final ValueNotifier<Player?> playerNotifier = ValueNotifier<Player?>(null);
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
@@ -76,19 +95,12 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   Future<void> init() async {
-    String? gameId = await SharedPrefs.getGameIdSF();
-
     Auth().authStateChanges().listen((user) async {
-      if (user == null) {
-        router.push("/welcome");
-      } else if (gameId == null) {
-        router.pushReplacement("/onboarding");
-      } else {
+      String? gameId = await SharedPrefs.getGameIdSF();
+      if (user != null && gameId != null) {
         Game fetchedGame = await Database().getGame(gameId);
         gameNotifier.value = fetchedGame;
-        playerNotifier.value = fetchedGame.getPlayerFromId(
-          Auth().getUserId()!,
-        );
+        playerNotifier.value = fetchedGame.getPlayerFromId(Auth().getUserId()!);
         print(
           "Fetched game with id ${fetchedGame.id} and ${fetchedGame.players.length} players and hasStarted: ${fetchedGame.isStarted}",
         );

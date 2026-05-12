@@ -13,17 +13,17 @@ class _WelcomeSreenState extends State<WelcomeSreen>
     with TickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 800),
+    duration: const Duration(milliseconds: 600),
   )..forward();
 
   late final AnimationController _yourController = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 600),
+    duration: const Duration(milliseconds: 300),
   );
 
   late final AnimationController _itController = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 800),
+    duration: const Duration(milliseconds: 400),
   );
 
   late final AnimationController _buttonController = AnimationController(
@@ -49,10 +49,10 @@ class _WelcomeSreenState extends State<WelcomeSreen>
     Future.delayed(const Duration(milliseconds: 800), () {
       if (mounted) _itController.forward();
     });
-    Future.delayed(const Duration(milliseconds: 1600), () {
+    Future.delayed(const Duration(milliseconds: 1200), () {
       if (mounted) _buttonController.forward();
     });
-    Future.delayed(const Duration(milliseconds: 1600), () {
+    Future.delayed(const Duration(milliseconds: 1200), () {
       if (mounted) _captionController.forward();
     });
   }

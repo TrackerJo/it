@@ -14,7 +14,7 @@ class NavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<Game>(
+    return ValueListenableBuilder<Game?>(
       valueListenable: gameNotifier,
       builder: (context, game, _) => Container(
         width: double.infinity,
@@ -42,7 +42,7 @@ class NavBar extends StatelessWidget {
               isActive: activeScreen == Screens.players,
               onTap: () => onTap(Screens.players),
             ),
-            if (game.isStarted)
+            if (game?.isStarted ?? false)
               NavBarIcon(
                 icon: Icons.bar_chart_outlined,
                 label: "Records",

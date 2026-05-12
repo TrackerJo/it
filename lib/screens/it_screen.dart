@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:it/api/database.dart';
 import 'package:it/constants.dart';
 import 'package:it/main.dart';
+import 'package:it/widgets/dotted_rounded_border.dart';
 import 'package:it/widgets/player_icon.dart';
 
 class ItScreen extends StatefulWidget {
@@ -27,7 +28,7 @@ class _ItScreenState extends State<ItScreen>
 
   void _updateTimer() {
     final game = gameNotifier.value;
-    if (!game.isStarted) return;
+    if (!game!.isStarted) return;
     final elapsed = DateTime.now().difference(
       game.latestTag?.timestamp ?? game.startedAt!,
     );
@@ -53,7 +54,7 @@ class _ItScreenState extends State<ItScreen>
 
   void _onGameChanged() {
     final game = gameNotifier.value;
-    if (!game.isStarted) {
+    if (!game!.isStarted) {
       _timer?.cancel();
       _timer = null;
       return;
@@ -110,9 +111,9 @@ class _ItScreenState extends State<ItScreen>
       builder: (context, _) {
         final game = gameNotifier.value;
         final player = playerNotifier.value;
-        return !game.isStarted
+        return !game!.isStarted
             ? _buildWaiting(context)
-            : player.isIt
+            : player!.isIt
             ? _buildIt(context)
             : _buildOtherIt(context);
       },
@@ -154,7 +155,54 @@ class _ItScreenState extends State<ItScreen>
             ),
 
             Spacer(),
-            if (player.isHost && gameNotifier.value.players.length >= 2)
+            if (player!.isHost && gameNotifier.value!.players.length >= 2) ...[
+              SizedBox(
+                width: MediaQuery.of(context).size.width - 32,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: DottedRoundedBorder(
+                        radius: 10,
+                        color: styling.blue,
+                        backgroundColor: styling.white,
+                        strokeWidth: 2,
+                        dashLength: 6,
+                        gapLength: 4,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: Text(
+                            "Game Code: ${gameNotifier.value!.joinCode}",
+                            textAlign: TextAlign.center,
+                            style: styling.numberFont.copyWith(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: styling.blue,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    IconButton(
+                      onPressed: () {
+                        Clipboard.setData(
+                          ClipboardData(
+                            text: gameNotifier.value!.joinCode.toString(),
+                          ),
+                        );
+                        SnackBar snackBar = SnackBar(
+                          content: Text("Game code copied to clipboard!"),
+                          backgroundColor: styling.blue,
+                        );
+                        ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                      },
+                      icon: Icon(Icons.copy, color: styling.blue),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
               Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: GestureDetector(
@@ -171,9 +219,9 @@ class _ItScreenState extends State<ItScreen>
                   },
                   onTapCancel: _releaseButton,
                   onTap: () {
-                    gameNotifier.value.startGame();
+                    gameNotifier.value!.startGame();
                     gameNotifier.refresh();
-                    Database().updateGame(gameNotifier.value);
+                    Database().updateGame(gameNotifier.value!);
                   },
 
                   child: AnimatedContainer(
@@ -212,8 +260,8 @@ class _ItScreenState extends State<ItScreen>
                     ),
                   ),
                 ),
-              )
-            else if (player.isHost)
+              ),
+            ] else if (player.isHost) ...[
               Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Text(
@@ -226,6 +274,53 @@ class _ItScreenState extends State<ItScreen>
                   textAlign: TextAlign.center,
                 ),
               ),
+              SizedBox(
+                width: MediaQuery.of(context).size.width - 32,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: DottedRoundedBorder(
+                        radius: 10,
+                        color: styling.blue,
+                        backgroundColor: styling.white,
+                        strokeWidth: 2,
+                        dashLength: 6,
+                        gapLength: 4,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: Text(
+                            "Game Code: ${gameNotifier.value!.joinCode}",
+                            textAlign: TextAlign.center,
+                            style: styling.numberFont.copyWith(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: styling.blue,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    IconButton(
+                      onPressed: () {
+                        Clipboard.setData(
+                          ClipboardData(
+                            text: gameNotifier.value!.joinCode.toString(),
+                          ),
+                        );
+                        SnackBar snackBar = SnackBar(
+                          content: Text("Game code copied to clipboard!"),
+                          backgroundColor: styling.blue,
+                        );
+                        ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                      },
+                      icon: Icon(Icons.copy, color: styling.blue),
+                    ),
+                  ],
+                ),
+              ),
+            ],
 
             SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
           ],
@@ -269,7 +364,7 @@ class _ItScreenState extends State<ItScreen>
                 );
               },
               child: PlayerIcon(
-                player: game.itPlayer!,
+                player: game!.itPlayer!,
                 size: 200,
                 iconSize: 100,
               ),
@@ -388,7 +483,7 @@ class _ItScreenState extends State<ItScreen>
                     ],
                   ),
                   child: Text(
-                    "Boo ${game.itPlayer!.name}",
+                    "Taunt ${game.itPlayer!.name}",
                     style: styling.bodyFont.copyWith(
                       fontSize: 24,
                       fontWeight: FontWeight.w700,
@@ -435,8 +530,31 @@ class _ItScreenState extends State<ItScreen>
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  "You're",
+                  maxLines: 1,
+                  style: styling.headerFont.copyWith(
+                    fontSize: 90,
+                    fontWeight: FontWeight.w400,
+                    color: styling.white,
+                    height: 0.95,
+                    shadows: [
+                      Shadow(
+                        color: styling.blue,
+                        offset: Offset(0, 4),
+                        blurRadius: 0,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
-                "YOU'RE IT",
+                "IT",
                 style: styling.headerFont.copyWith(
                   fontSize: 90,
                   fontWeight: FontWeight.w400,
@@ -498,7 +616,7 @@ class _ItScreenState extends State<ItScreen>
                 },
                 onTapCancel: _releaseButton,
                 onTap: () {
-                  router.push("/tag");
+                  router.push("/home/tag");
                 },
 
                 child: AnimatedContainer(

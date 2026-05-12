@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:it/main.dart';
 
 class FancyInputField extends StatelessWidget {
@@ -45,7 +46,9 @@ class FancyInputField extends StatelessWidget {
         ),
         keyboardType: keyboardType,
         obscureText: obscureText,
-        
+        onTap: () {
+          HapticFeedback.lightImpact();
+        },
       ),
     );
   }

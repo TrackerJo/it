@@ -42,12 +42,25 @@ class Database {
     return Game.fromMap(data);
   }
 
+  Future<Game?> getGamePlayersIn(String playerId) async {
+    QuerySnapshot query = await gameCollection
+        .where("playerIds", arrayContains: playerId)
+        .get();
+    if (query.docs.isEmpty) return null;
+    DocumentSnapshot doc = query.docs.first;
+    var data = doc.data() as Map<String, dynamic>;
+    return Game.fromMap(data);
+  }
+
   Future<void> updateGame(Game gameData) async {
     await gameCollection.doc(gameData.id).update(gameData.toMap());
   }
 
   Future<StreamSubscription> gameDataStream() async {
-    String gameId = await SharedPrefs.getGameIdSF() ?? "";
+    String gameId =
+        await SharedPrefs.getGameIdSF() ?? gameNotifier.value?.id ?? "";
+    print("Starting game data stream for game with id $gameId");
+    print("Current game data: ${gameNotifier.value?.toMap()}");
 
     Stream stream = gameCollection.doc(gameId).snapshots();
 

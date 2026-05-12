@@ -3,8 +3,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 class SharedPrefs {
   static String gameIdKey = "GAMEIDKEY";
 
-  static Future<void> setGameIdSF(String gameId) async {
+  static Future<void> setGameIdSF(String? gameId) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
+    if (gameId == null) {
+      await prefs.remove(gameIdKey);
+      return;
+    } 
     await prefs.setString(gameIdKey, gameId);
   }
 

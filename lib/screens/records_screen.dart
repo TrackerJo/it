@@ -28,10 +28,10 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<Game>(
+    return ValueListenableBuilder<Game?>(
       valueListenable: gameNotifier,
       builder: (context, game, _) {
-        final Player? mostTagged = game.getMostTaggedPlayer();
+        final Player? mostTagged = game!.getMostTaggedPlayer();
         final Player? untouchable = game.getUntouchablePlayer();
         final Map<Player, Duration> longestItStints = game.getLongestItStints();
         final TagBack? fastestTagBack = game.getFastestTagBack();

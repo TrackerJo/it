@@ -101,7 +101,7 @@ class _TagScreenState extends State<TagScreen> with TickerProviderStateMixin {
               ),
             ),
             const SizedBox(height: 32),
-            ValueListenableBuilder<Game>(
+            ValueListenableBuilder<Game?>(
               valueListenable: gameNotifier,
               builder: (context, game, _) => SizedBox(
                 width: double.infinity,
@@ -113,7 +113,7 @@ class _TagScreenState extends State<TagScreen> with TickerProviderStateMixin {
                   runSpacing: 16,
                   children: [
                     ...() {
-                      final available = game.players
+                      final available = game!.players
                           .where((player) => !player.isIt)
                           .toList();
                     return available.asMap().entries.map((entry) {

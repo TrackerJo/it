@@ -361,7 +361,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
           print("Game created with ID: ${newGame.id}");
 
-          router.pushReplacement("/");
+          router.pushReplacement("/home");
         },
 
         child: AnimatedContainer(
@@ -578,7 +578,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           );
           Database().gameDataStream();
           print("Joined game with ID: ${joinedGame.id}");
-          router.pushReplacement("/");
+          router.pushReplacement("/home");
         },
 
         child: AnimatedContainer(

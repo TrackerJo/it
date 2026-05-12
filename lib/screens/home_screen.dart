@@ -22,7 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool changingFromNavBar = false;
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<Game>(
+    return ValueListenableBuilder<Game?>(
       valueListenable: gameNotifier,
       builder: (context, game, _) {
         return Scaffold(
@@ -45,7 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ItScreen(),
 
                     PlayersScreen(),
-                    if (game.isStarted) RecordsScreen(),
+                    if (game?.isStarted ?? false) RecordsScreen(),
                     MeScreen(),
                   ],
                 ),
@@ -61,7 +61,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     activeScreen = screen;
                     pageController.animateToPage(
                       screen.index -
-                          (game.isStarted
+                          (game?.isStarted ?? false
                               ? 0
                               : screen == Screens.me
                               ? 1
