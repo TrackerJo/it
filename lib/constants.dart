@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:it/api/database.dart';
 import 'package:it/api/notifications.dart';
+import 'package:it/api/shared_prefs.dart';
 import 'package:it/main.dart';
 import 'package:it/widgets/in_app_notification.dart';
 
@@ -435,6 +436,18 @@ class Game {
         .length;
   }
 
+  Player? getBiggestTaunter() {
+    Player? biggest;
+    int mostTaunts = -1;
+    for (var player in players) {
+      if (player.taunts > mostTaunts) {
+        biggest = player;
+        mostTaunts = player.taunts;
+      }
+    }
+    return biggest;
+  }
+
   List<String> get playerFCMTokens {
     return players.map((p) => p.fcmToken).whereType<String>().toList();
   }
@@ -450,13 +463,26 @@ class Game {
     getPlayerFromId(taggerId).isIt = false;
     getPlayerFromId(taggedId).isIt = true;
     List<String> targetIds = playerFCMTokens
-        .where((token) => token != getPlayerFromId(taggedId).fcmToken)
+        .where(
+          (token) =>
+              token != getPlayerFromId(taggedId).fcmToken &&
+              token != getPlayerFromId(taggerId).fcmToken,
+        )
         .toList();
     TagNotification notif = TagNotification(
       id: DateTime.now().millisecondsSinceEpoch,
       targetIds: targetIds,
       taggerName: getPlayerFromId(taggerId).name,
       taggedName: getPlayerFromId(taggedId).name,
+      toTaggedPlayer: false,
+    );
+    PushNotifications().sendNotification(notif: notif);
+    notif = TagNotification(
+      id: DateTime.now().millisecondsSinceEpoch,
+      targetIds: [getPlayerFromId(taggedId).fcmToken!],
+      taggerName: getPlayerFromId(taggerId).name,
+      taggedName: getPlayerFromId(taggedId).name,
+      toTaggedPlayer: true,
     );
     PushNotifications().sendNotification(notif: notif);
     Database().updateGameTags(this);
@@ -469,7 +495,28 @@ class Game {
     int itPlayerIndex =
         (DateTime.now().millisecondsSinceEpoch ~/ 1000) % players.length;
     players[itPlayerIndex].isIt = true;
+    GameStartNotification notification = GameStartNotification(
+      id: DateTime.now().millisecondsSinceEpoch,
+      targetIds: playerFCMTokens,
+      gameName: name,
+      firstItPlayerName: players[itPlayerIndex].name,
+    );
+    PushNotifications().sendNotification(notif: notification);
     Database().startGame(this);
+  }
+
+  void taunt() {
+    TauntNotification notification = TauntNotification(
+      id: DateTime.now().millisecondsSinceEpoch,
+      targetIds: [getPlayerFromId(itPlayer!.id).fcmToken!],
+      taunterName: playerNotifier.value!.name,
+    );
+    PushNotifications().sendNotification(notif: notification);
+    players.firstWhere((p) => p.id == itPlayer!.id).timesTaunted += 1;
+    players.firstWhere((p) => p.id == playerNotifier.value!.id).taunts += 1;
+    Database().updateGamePlayers(id, players);
+    SharedPrefs.setLastTauntedSF(DateTime.now());
+    notification.successfullySent();
   }
 }
 
@@ -684,6 +731,14 @@ class TauntNotification extends Notif {
     );
   }
 
+  void successfullySent() {
+    InAppNotification(
+      title: "Taunt Sent! 🎯",
+      body: "Your taunt has reached ${taunterName}.",
+      icon: Icons.campaign,
+    ).present(router.routerDelegate.navigatorKey.currentContext!);
+  }
+
   @override
   Map<String, dynamic> toMap() {
     final base = super.toMap();
@@ -704,14 +759,16 @@ class TauntNotification extends Notif {
 class TagNotification extends Notif {
   final String taggerName;
   final String taggedName;
+  final bool toTaggedPlayer;
 
   factory TagNotification({
     required int id,
     required List<String> targetIds,
     required String taggerName,
     required String taggedName,
+    required bool toTaggedPlayer,
   }) {
-    if (playerNotifier.value!.name == taggedName) {
+    if (toTaggedPlayer) {
       return TagNotification.withMessage(
         id: id,
         targetIds: targetIds,
@@ -719,6 +776,7 @@ class TagNotification extends Notif {
         taggedName: taggedName,
         title: "You Were Tagged! 😢",
         body: "$taggerName just tagged you. Time to find a new target!",
+        toTaggedPlayer: true,
       );
     } else {
       return TagNotification.withMessage(
@@ -728,6 +786,7 @@ class TagNotification extends Notif {
         taggedName: taggedName,
         title: "Someone Got Tagged! 👀",
         body: "$taggerName just tagged $taggedName.",
+        toTaggedPlayer: false,
       );
     }
   }
@@ -739,6 +798,7 @@ class TagNotification extends Notif {
     required this.taggedName,
     required String super.title,
     required String super.body,
+    required this.toTaggedPlayer,
   }) : super(type: NotificationType.tag);
 
   @override
@@ -760,7 +820,12 @@ class TagNotification extends Notif {
 
   Map<String, dynamic> toMap() {
     final base = super.toMap();
-    return {...base, 'taggerName': taggerName, 'taggedName': taggedName};
+    return {
+      ...base,
+      'taggerName': taggerName,
+      'taggedName': taggedName,
+      'toTaggedPlayer': toTaggedPlayer,
+    };
   }
 
   factory TagNotification.fromMap(Map<String, dynamic> map) {
@@ -769,6 +834,7 @@ class TagNotification extends Notif {
       targetIds: List<String>.from(map['targetIds']),
       taggerName: map['taggerName'],
       taggedName: map['taggedName'],
+      toTaggedPlayer: map['toTaggedPlayer'],
     );
   }
 }

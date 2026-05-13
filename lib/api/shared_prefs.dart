@@ -3,6 +3,24 @@ import 'package:shared_preferences/shared_preferences.dart';
 class SharedPrefs {
   static String gameIdKey = "GAMEIDKEY";
   static String askedNotificationsKey = "ASKEDNOTIFICATIONSKEY";
+  static String lastTauntedKey = "LASTTAUNTEDKEY";
+
+  static Future<void> setLastTauntedSF(DateTime? time) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    if (time == null) {
+      await prefs.remove(lastTauntedKey);
+      return;
+    }
+    await prefs.setInt(lastTauntedKey, time.millisecondsSinceEpoch);
+  }
+
+  static Future<DateTime?> getLastTauntedSF() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    int? time = prefs.getInt(lastTauntedKey);
+    if (time == null) return null;
+    // return null;
+    return DateTime.fromMillisecondsSinceEpoch(time);
+  }
 
   static Future<void> setAskedNotificationsSF(bool asked) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();

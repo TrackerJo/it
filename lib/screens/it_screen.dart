@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:it/api/database.dart';
 import 'package:it/api/notifications.dart';
+import 'package:it/api/shared_prefs.dart';
 import 'package:it/constants.dart';
 import 'package:it/main.dart';
 import 'package:it/widgets/dotted_rounded_border.dart';
@@ -26,17 +27,24 @@ class _ItScreenState extends State<ItScreen>
   Player? taggedBy;
   Timer? _timer;
   String timerText = "";
+  String timeTillTaunt = "";
+  bool canTaunt = true;
   late final AnimationController _wiggleController;
 
-  void _updateTimer() {
+  void _updateTimer() async {
     final game = gameNotifier.value;
     if (!game!.isStarted) return;
     final elapsed = DateTime.now().difference(
       game.latestTag?.timestamp ?? game.startedAt!,
     );
+    DateTime? latestTaunt = await SharedPrefs.getLastTauntedSF();
+    final timeTillTauntDuration =
+        Duration(hours: 1) -
+        DateTime.now().difference(latestTaunt ?? DateTime.now());
     if (!mounted) return;
     setState(() {
       timerText = _formatElapsed(elapsed);
+      timeTillTaunt = _formatElapsed(timeTillTauntDuration);
     });
   }
 
@@ -82,6 +90,17 @@ class _ItScreenState extends State<ItScreen>
       duration: const Duration(milliseconds: 1600),
     )..repeat();
     gameNotifier.addListener(_onGameChanged);
+    SharedPrefs.getLastTauntedSF().then((lastTaunted) {
+      if (lastTaunted != null) {
+        final elapsed = DateTime.now().difference(lastTaunted);
+        if (elapsed < Duration(hours: 1)) {
+          setState(() => canTaunt = false);
+          Future.delayed(Duration(hours: 1) - elapsed, () {
+            if (mounted) setState(() => canTaunt = true);
+          });
+        }
+      }
+    });
     _onGameChanged();
   }
 
@@ -443,81 +462,81 @@ class _ItScreenState extends State<ItScreen>
               ),
             ),
             Spacer(),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: GestureDetector(
-                onTapDown: (details) {
-                  HapticFeedback.lightImpact();
-                  setState(() {
-                    buttonPressed = true;
-                    _pressedAt = DateTime.now();
-                  });
-                },
-                onTapUp: (details) {
-                  HapticFeedback.lightImpact();
+            if (canTaunt)
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: GestureDetector(
+                  onTapDown: (details) {
+                    HapticFeedback.lightImpact();
+                    setState(() {
+                      buttonPressed = true;
+                      _pressedAt = DateTime.now();
+                    });
+                  },
+                  onTapUp: (details) {
+                    HapticFeedback.lightImpact();
 
-                  _releaseButton();
-                },
-                onTapCancel: _releaseButton,
-                onTap: () {
-                  // TauntNotification notification = TauntNotification(
-                  //   id: 1,
-                  //   targetIds: [playerNotifier.value!.name],
-                  //   taunterName: playerNotifier.value!.name,
-                  // );
-                  // TagNotification notification = TagNotification(
-                  //   id: 1,
-                  //   targetIds: [game.itPlayer!.id],
-                  //   taggedName: playerNotifier.value!.name,
-                  //   taggerName: game.itPlayer!.name,
-                  // );
-                  TauntNotification notification = TauntNotification(
-                    id: 1,
-                    targetIds: [gameNotifier.value!.itPlayer!.fcmToken!],
+                    _releaseButton();
+                  },
+                  onTapCancel: _releaseButton,
+                  onTap: () {
+                    game.taunt();
+                    setState(() => canTaunt = false);
+                    Future.delayed(Duration(hours: 1), () {
+                      if (mounted) setState(() => canTaunt = true);
+                    });
+                  },
 
-                    taunterName: playerNotifier.value!.name,
-                  );
-                  notification.present(context);
-                  PushNotifications().sendNotification(notif: notification);
-                },
-
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 80),
-                  curve: Curves.easeOut,
-                  transform: Matrix4.translationValues(
-                    0,
-                    buttonPressed ? 5 : 0,
-                    0,
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 22,
-                    vertical: 16,
-                  ),
-                  width: double.infinity,
-                  decoration: ShapeDecoration(
-                    color: styling.pink,
-                    shape: StadiumBorder(),
-                    shadows: [
-                      if (!buttonPressed)
-                        BoxShadow(
-                          color: styling.darkPink,
-                          offset: Offset(0, 5),
-                          blurRadius: 0,
-                        ),
-                    ],
-                  ),
-                  child: Text(
-                    "Taunt ${game.itPlayer!.name}",
-                    style: styling.bodyFont.copyWith(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700,
-                      color: styling.white,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 80),
+                    curve: Curves.easeOut,
+                    transform: Matrix4.translationValues(
+                      0,
+                      buttonPressed ? 5 : 0,
+                      0,
                     ),
-                    textAlign: TextAlign.center,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 22,
+                      vertical: 16,
+                    ),
+                    width: double.infinity,
+                    decoration: ShapeDecoration(
+                      color: styling.pink,
+                      shape: StadiumBorder(),
+                      shadows: [
+                        if (!buttonPressed)
+                          BoxShadow(
+                            color: styling.darkPink,
+                            offset: Offset(0, 5),
+                            blurRadius: 0,
+                          ),
+                      ],
+                    ),
+                    child: Text(
+                      "Taunt ${game.itPlayer!.name}",
+                      style: styling.bodyFont.copyWith(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        color: styling.white,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                 ),
+              )
+            else
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  "You can taunt again in $timeTillTaunt",
+                  style: styling.bodyFont.copyWith(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: styling.blueMute,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
               ),
-            ),
             SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
           ],
         ),

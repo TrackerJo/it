@@ -35,6 +35,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
         final Player? untouchable = game.getUntouchablePlayer();
         final Map<Player, Duration> longestItStints = game.getLongestItStints();
         final TagBack? fastestTagBack = game.getFastestTagBack();
+        final Player? biggestTaunter = game.getBiggestTaunter();
         return Scaffold(
           backgroundColor: styling.green,
 
@@ -137,7 +138,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                           ),
                         ),
                       ),
-                    if (mostTagged != null) const SizedBox(height: 32),
+                    if (mostTagged != null) const SizedBox(height: 16),
                     if (untouchable != null)
                       FancyContainer(
                         width: double.infinity,
@@ -195,7 +196,69 @@ class _RecordsScreenState extends State<RecordsScreen> {
                           ),
                         ),
                       ),
-                    if (untouchable != null) const SizedBox(height: 32),
+                    if (untouchable != null) const SizedBox(height: 16),
+                    if (biggestTaunter != null)
+                      FancyContainer(
+                        width: double.infinity,
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Biggest Taunter",
+                                style: styling.bodyFont.copyWith(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: styling.blue,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  PlayerIcon(
+                                    player: biggestTaunter,
+                                    size: 60,
+                                    iconSize: 30,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    biggestTaunter.name,
+                                    style: styling.headerFont.copyWith(
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.w700,
+                                      color: styling.blue,
+                                    ),
+                                  ),
+                                  Spacer(),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        biggestTaunter.taunts.toString(),
+                                        style: styling.numberFont.copyWith(
+                                          fontSize: 32,
+                                          fontWeight: FontWeight.w700,
+                                          color: styling.pink,
+                                        ),
+                                      ),
+                                      Text(
+                                        " Taunts",
+                                        style: styling.bodyFont.copyWith(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w400,
+                                          color: styling.blue,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    if (biggestTaunter != null) const SizedBox(height: 16),
                     if (longestItStints.isNotEmpty)
                       FancyContainer(
                         width: double.infinity,
@@ -279,7 +342,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                           ),
                         ),
                       ),
-                    if (longestItStints.isNotEmpty) const SizedBox(height: 32),
+                    if (longestItStints.isNotEmpty) const SizedBox(height: 16),
                     if (fastestTagBack != null)
                       FancyContainer(
                         width: double.infinity,
