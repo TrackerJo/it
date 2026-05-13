@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:it/api/database.dart';
+import 'package:it/api/notifications.dart';
 import 'package:it/constants.dart';
 import 'package:it/main.dart';
 import 'package:it/widgets/dotted_rounded_border.dart';
@@ -470,15 +471,13 @@ class _ItScreenState extends State<ItScreen>
                   //   taggedName: playerNotifier.value!.name,
                   //   taggerName: game.itPlayer!.name,
                   // );
-                  GameStartNotification notification = GameStartNotification(
+                  TauntNotification notification = TauntNotification(
                     id: 1,
-                    targetIds: gameNotifier.value!.players
-                        .map((p) => p.id)
-                        .toList(),
-                    gameName: gameNotifier.value!.name,
-                    firstItPlayerName: gameNotifier.value!.itPlayer!.name,
+                    targetIds: [gameNotifier.value!.itPlayer!.fcmToken!],
+
+                    taunterName: playerNotifier.value!.name,
                   );
-                  notification.toInAppNotification().present(context);
+                  PushNotifications().sendNotification(notif: notification);
                 },
 
                 child: AnimatedContainer(

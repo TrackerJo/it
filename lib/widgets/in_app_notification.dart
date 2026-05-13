@@ -255,7 +255,7 @@ class InAppNotification {
   });
 
   Future<bool> present(BuildContext context) async {
-    final overlay = Overlay.of(context, rootOverlay: true);
+    final overlay = Navigator.of(context, rootNavigator: true).overlay!;
     final bannerKey = GlobalKey<DiscoveryBottomBannerState>();
     final completer = Completer<bool>();
     Timer? autoDismissTimer;

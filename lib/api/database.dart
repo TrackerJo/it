@@ -56,6 +56,28 @@ class Database {
     await gameCollection.doc(gameData.id).update(gameData.toMap());
   }
 
+  Future<void> updateGamePlayers(String gameId, List<Player> players) async {
+    await gameCollection.doc(gameId).update({
+      "players": players.map((p) => p.toMap()).toList(),
+      "playerIds": players.map((p) => p.id).toList(),
+    });
+  }
+
+  Future<void> updateGameTags(Game game) async {
+    await gameCollection.doc(game.id).update({
+      "tags": game.tags.map((t) => t.toMap()).toList(),
+      "players": game.players.map((p) => p.toMap()).toList(),
+    });
+  }
+
+  Future<void> startGame(Game game) async {
+    await gameCollection.doc(game.id).update({
+      "isStarted": true,
+      "startedAt": game.startedAt?.millisecondsSinceEpoch,
+      "players": game.players.map((p) => p.toMap()).toList(),
+    });
+  }
+
   Future<StreamSubscription> gameDataStream() async {
     String gameId =
         await SharedPrefs.getGameIdSF() ?? gameNotifier.value?.id ?? "";

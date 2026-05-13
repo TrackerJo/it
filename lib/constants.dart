@@ -31,7 +31,7 @@ class MiniPlayer {
 
 class Player extends MiniPlayer {
   final String id;
-
+  String? fcmToken;
   final bool isHost;
   int taunts;
   int timesTaunted;
@@ -41,6 +41,7 @@ class Player extends MiniPlayer {
     required super.name,
     required super.icon,
     required super.color,
+    this.fcmToken,
     this.isHost = false,
     this.isIt = false,
     this.taunts = 0,
@@ -58,6 +59,7 @@ class Player extends MiniPlayer {
       'taunts': taunts,
       'timesTaunted': timesTaunted,
       'isIt': isIt,
+      'fcmToken': fcmToken,
     };
   }
 
@@ -71,6 +73,7 @@ class Player extends MiniPlayer {
       taunts: map['taunts'],
       timesTaunted: map['timesTaunted'],
       isIt: map['isIt'],
+      fcmToken: map['fcmToken'] ?? "",
     );
   }
 }
@@ -445,7 +448,7 @@ class Game {
     tags.add(tag);
     getPlayerFromId(taggerId).isIt = false;
     getPlayerFromId(taggedId).isIt = true;
-    Database().updateGame(this);
+    Database().updateGameTags(this);
   }
 
   void startGame() {
@@ -455,6 +458,7 @@ class Game {
     int itPlayerIndex =
         (DateTime.now().millisecondsSinceEpoch ~/ 1000) % players.length;
     players[itPlayerIndex].isIt = true;
+    Database().startGame(this);
   }
 }
 
@@ -575,14 +579,30 @@ abstract class Notif {
 class TauntNotification extends Notif {
   final String taunterName;
 
-  TauntNotification({
+  factory TauntNotification({
     required int id,
-
     required List<String> targetIds,
-    required this.taunterName,
-  }) : super(id: id, type: NotificationType.taunt, targetIds: targetIds);
+    required String taunterName,
+  }) {
+    final taunt = _generateTaunt(taunterName);
+    return TauntNotification.withMessage(
+      id: id,
+      targetIds: targetIds,
+      taunterName: taunterName,
+      title: taunt['title']!,
+      body: taunt['message']!,
+    );
+  }
 
-  Map<String, String> _generateTaunt(String taunterName) {
+  TauntNotification.withMessage({
+    required super.id,
+    required super.targetIds,
+    required this.taunterName,
+    required String super.title,
+    required String super.body,
+  }) : super(type: NotificationType.taunt);
+
+  static Map<String, String> _generateTaunt(String taunterName) {
     final List<Map<String, String>> tagTauntNotifications = [
       {
         "title": "You’re It 😈",
@@ -642,24 +662,26 @@ class TauntNotification extends Notif {
 
   @override
   InAppNotification toInAppNotification() {
-    Map<String, String> taunt = _generateTaunt(taunterName);
     return InAppNotification(
-      title: taunt["title"]!,
-      body: taunt["message"]!,
+      title: title ?? "",
+      body: body ?? "",
       icon: Icons.campaign,
     );
   }
 
+  @override
   Map<String, dynamic> toMap() {
     final base = super.toMap();
     return {...base, 'taunterName': taunterName};
   }
 
   factory TauntNotification.fromMap(Map<String, dynamic> map) {
-    return TauntNotification(
+    return TauntNotification.withMessage(
       id: map['id'],
       targetIds: List<String>.from(map['targetIds']),
       taunterName: map['taunterName'],
+      title: map['title'] ?? '',
+      body: map['body'] ?? '',
     );
   }
 }
@@ -668,12 +690,41 @@ class TagNotification extends Notif {
   final String taggerName;
   final String taggedName;
 
-  TagNotification({
+  factory TagNotification({
     required int id,
     required List<String> targetIds,
+    required String taggerName,
+    required String taggedName,
+  }) {
+    if (playerNotifier.value!.name == taggedName) {
+      return TagNotification.withMessage(
+        id: id,
+        targetIds: targetIds,
+        taggerName: taggerName,
+        taggedName: taggedName,
+        title: "You Were Tagged! 😢",
+        body: "$taggerName just tagged you. Time to find a new target!",
+      );
+    } else {
+      return TagNotification.withMessage(
+        id: id,
+        targetIds: targetIds,
+        taggerName: taggerName,
+        taggedName: taggedName,
+        title: "Someone Got Tagged! 👀",
+        body: "$taggerName just tagged $taggedName.",
+      );
+    }
+  }
+
+  TagNotification.withMessage({
+    required super.id,
+    required super.targetIds,
     required this.taggerName,
     required this.taggedName,
-  }) : super(id: id, type: NotificationType.tag, targetIds: targetIds);
+    required String super.title,
+    required String super.body,
+  }) : super(type: NotificationType.tag);
 
   @override
   InAppNotification toInAppNotification() {
@@ -711,12 +762,30 @@ class GameStartNotification extends Notif {
   final String gameName;
   final String firstItPlayerName;
 
-  GameStartNotification({
+  factory GameStartNotification({
     required int id,
     required List<String> targetIds,
+    required String gameName,
+    required String firstItPlayerName,
+  }) {
+    return GameStartNotification.withMessage(
+      id: id,
+      targetIds: targetIds,
+      gameName: gameName,
+      firstItPlayerName: firstItPlayerName,
+      title: "Game Started! 🎉",
+      body: "The game \"$gameName\" has started. $firstItPlayerName is It!",
+    );
+  }
+
+  GameStartNotification.withMessage({
+    required super.id,
+    required super.targetIds,
     required this.gameName,
     required this.firstItPlayerName,
-  }) : super(id: id, type: NotificationType.gameStart, targetIds: targetIds);
+    required String title,
+    required String body,
+  }) : super(type: NotificationType.gameStart);
 
   @override
   InAppNotification toInAppNotification() {

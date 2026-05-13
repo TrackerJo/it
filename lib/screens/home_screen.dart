@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:it/api/notifications.dart';
+import 'package:it/api/shared_prefs.dart';
 import 'package:it/constants.dart';
 import 'package:it/main.dart';
 import 'package:it/screens/it_screen.dart';
@@ -25,7 +26,11 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     // TODO: implement initState
     super.initState();
-    PushNotifications().initNotifications();
+    SharedPrefs.getAskedNotificationsSF().then((asked) {
+      if (!asked) {
+        PushNotifications().initNotifications();
+      }
+    });
   }
 
   @override

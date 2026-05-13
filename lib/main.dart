@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:it/api/auth.dart';
 import 'package:it/api/database.dart';
+import 'package:it/api/notifications.dart';
 import 'package:it/api/shared_prefs.dart';
 
 import 'package:it/constants.dart';
@@ -25,6 +26,10 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
     name: 'it',
   );
+  bool askedNotifications = await SharedPrefs.getAskedNotificationsSF();
+  if (askedNotifications) {
+    await PushNotifications().initNotifications();
+  }
   runApp(const MyApp());
 }
 
@@ -119,7 +124,7 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return OverlaySupport(
+    return OverlaySupport.global(
       child: MaterialApp.router(
         title: 'It!',
         debugShowCheckedModeBanner: false,

@@ -16,6 +16,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
   Future<void> init() async {
     String? gameId = await SharedPrefs.getGameIdSF();
     bool isLoggedIn = Auth().isUserLoggedIn();
+
     if (!isLoggedIn) {
       router.pushReplacement("/welcome");
     } else if (gameId == null) {
@@ -24,6 +25,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
         await SharedPrefs.setGameIdSF(game.id);
         gameNotifier.value = game;
         playerNotifier.value = game.getPlayerFromId(Auth().getUserId()!);
+        router.pushReplacement("/home");
 
         return;
       }
