@@ -81,7 +81,7 @@ class DiscoveryBottomBannerState extends State<DiscoveryBottomBanner>
 
   @override
   Widget build(BuildContext context) {
-    final bg = styling.pink;
+    final bg = styling.orange;
     final primary = styling.blue;
     return SafeArea(
       bottom: false,

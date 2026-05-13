@@ -635,7 +635,7 @@ class _MeScreenState extends State<MeScreen> {
                                                                   16 -
                                                                   32 -
                                                                   4 -
-                                                                  20
+                                                                  40
                                                             : MediaQuery.of(
                                                                     context,
                                                                   ).size.width -

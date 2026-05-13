@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:it/api/database.dart';
+import 'package:it/api/notifications.dart';
 import 'package:it/main.dart';
 import 'package:it/widgets/in_app_notification.dart';
 
@@ -302,41 +303,37 @@ class Game {
   }
 
   Map<Player, Duration> getLongestItStints() {
-    Map<String, DateTime> itStartTimes = {};
-    Map<String, Duration> itDurations = {};
+    final sorted = [...tags]
+      ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+    final Map<String, DateTime> itStartTimes = {};
+    final Map<String, Duration> longestStint = {};
 
-    for (var tag in tags) {
-      if (itStartTimes.containsKey(tag.taggerPlayerId)) {
-        final duration = tag.timestamp.difference(
-          itStartTimes[tag.taggerPlayerId]!,
-        );
-        if (itDurations.containsKey(tag.taggerPlayerId)) {
-          itDurations[tag.taggerPlayerId] =
-              itDurations[tag.taggerPlayerId]! + duration;
-        } else {
-          itDurations[tag.taggerPlayerId] = duration;
-        }
-      } else {
-        final duration = tag.timestamp.difference(startedAt!);
-        itDurations[tag.taggerPlayerId] = duration;
+    void record(String playerId, Duration dur) {
+      final current = longestStint[playerId];
+      if (current == null || dur > current) {
+        longestStint[playerId] = dur;
       }
+    }
+
+    for (final tag in sorted) {
+      final start = itStartTimes[tag.taggerPlayerId] ?? startedAt;
+      if (start != null) {
+        record(tag.taggerPlayerId, tag.timestamp.difference(start));
+      }
+      itStartTimes.remove(tag.taggerPlayerId);
       itStartTimes[tag.taggedPlayerId] = tag.timestamp;
     }
 
-    Map<Player, Duration> longestStints = {};
-    for (var playerId in itDurations.keys) {
-      longestStints[getPlayerFromId(playerId)] = itDurations[playerId]!;
+    for (final entry in itStartTimes.entries) {
+      record(entry.key, DateTime.now().difference(entry.value));
     }
 
-    longestStints = Map.fromEntries(
-      longestStints.entries.toList()
-        ..sort((a, b) => b.value.compareTo(a.value)),
-    );
+    final sortedEntries = longestStint.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
 
-    //top 3
-    longestStints = Map.fromEntries(longestStints.entries.take(3));
-
-    return longestStints;
+    return {
+      for (final e in sortedEntries.take(3)) getPlayerFromId(e.key): e.value,
+    };
   }
 
   Duration getPlayerLongestItDuration(String playerId) {
@@ -438,6 +435,10 @@ class Game {
         .length;
   }
 
+  List<String> get playerFCMTokens {
+    return players.map((p) => p.fcmToken).whereType<String>().toList();
+  }
+
   void tagPlayer(String taggedId) {
     String taggerId = itPlayer!.id;
     final tag = Tag(
@@ -448,6 +449,16 @@ class Game {
     tags.add(tag);
     getPlayerFromId(taggerId).isIt = false;
     getPlayerFromId(taggedId).isIt = true;
+    List<String> targetIds = playerFCMTokens
+        .where((token) => token != getPlayerFromId(taggedId).fcmToken)
+        .toList();
+    TagNotification notif = TagNotification(
+      id: DateTime.now().millisecondsSinceEpoch,
+      targetIds: targetIds,
+      taggerName: getPlayerFromId(taggerId).name,
+      taggedName: getPlayerFromId(taggedId).name,
+    );
+    PushNotifications().sendNotification(notif: notif);
     Database().updateGameTags(this);
   }
 
@@ -569,6 +580,10 @@ abstract class Notif {
       case NotificationType.gameStart:
         return GameStartNotification.fromMap(map);
     }
+  }
+
+  void present(BuildContext context) {
+    toInAppNotification().present(context);
   }
 
   InAppNotification toInAppNotification() {

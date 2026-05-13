@@ -477,6 +477,7 @@ class _ItScreenState extends State<ItScreen>
 
                     taunterName: playerNotifier.value!.name,
                   );
+                  notification.present(context);
                   PushNotifications().sendNotification(notif: notification);
                 },
 

@@ -60,9 +60,7 @@ class PushNotifications {
       return;
     }
     final notif = Notif.fromMap(jsonDecode(message.data["data"]));
-    notif.toInAppNotification().present(
-      router.routerDelegate.navigatorKey.currentContext!,
-    );
+    notif.present(router.routerDelegate.navigatorKey.currentContext!);
   }
 
   Future initPushNotifications() async {
