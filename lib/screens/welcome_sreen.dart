@@ -43,16 +43,14 @@ class _WelcomeSreenState extends State<WelcomeSreen>
   @override
   void initState() {
     super.initState();
-    HapticFeedback.mediumImpact();
+
     Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted) {
-        HapticFeedback.mediumImpact();
         _yourController.forward();
       }
     });
     Future.delayed(const Duration(milliseconds: 800), () {
       if (mounted) {
-        HapticFeedback.mediumImpact();
         _itController.forward();
       }
     });

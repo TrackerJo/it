@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:it/api/database.dart';
 import 'package:it/api/notifications.dart';
 import 'package:it/api/shared_prefs.dart';
+import 'package:it/api/widget_service.dart';
 import 'package:it/main.dart';
 import 'package:it/widgets/in_app_notification.dart';
 
@@ -118,6 +119,17 @@ class TagBack {
     required this.taggedPlayerId,
     required this.length,
   });
+}
+
+class TagState {
+  final bool isIt;
+  final String itName;
+
+  TagState({required this.isIt, required this.itName});
+
+  Map<String, dynamic> toMap() {
+    return {'isIt': isIt, 'itName': itName};
+  }
 }
 
 class Game {
@@ -486,6 +498,12 @@ class Game {
     );
     PushNotifications().sendNotification(notif: notif);
     Database().updateGameTags(this);
+    WidgetService.updateTaggedState(
+      TagState(
+        isIt: taggedId == playerNotifier.value!.id,
+        itName: getPlayerFromId(taggedId).name,
+      ),
+    );
   }
 
   void startGame() {
@@ -503,6 +521,12 @@ class Game {
     );
     PushNotifications().sendNotification(notif: notification);
     Database().startGame(this);
+    WidgetService.updateTaggedState(
+      TagState(
+        isIt: players[itPlayerIndex].id == playerNotifier.value!.id,
+        itName: players[itPlayerIndex].name,
+      ),
+    );
   }
 
   void taunt() {

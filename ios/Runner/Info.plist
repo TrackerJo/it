@@ -10,6 +10,13 @@
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
 	<string>It</string>
+    <key>UIAppFonts</key>
+    <array>
+        <string>Caprasimo-Regular.ttf</string>
+        <string>DMSans-Regular.ttf</string>
+        <string>DMSans-Medium.ttf</string>
+        <string>DMSans-Bold.ttf</string>
+    </array>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>

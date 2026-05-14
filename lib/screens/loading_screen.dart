@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:it/api/auth.dart';
 import 'package:it/api/database.dart';
 import 'package:it/api/shared_prefs.dart';
+import 'package:it/api/widget_service.dart';
 import 'package:it/constants.dart';
 import 'package:it/main.dart';
 
@@ -25,6 +26,12 @@ class _LoadingScreenState extends State<LoadingScreen> {
         await SharedPrefs.setGameIdSF(game.id);
         gameNotifier.value = game;
         playerNotifier.value = game.getPlayerFromId(Auth().getUserId()!);
+        WidgetService.updateTaggedState(
+          TagState(
+            isIt: game.itPlayer!.id == playerNotifier.value!.id,
+            itName: game.itPlayer!.name,
+          ),
+        );
         router.pushReplacement("/home");
 
         return;
@@ -34,6 +41,12 @@ class _LoadingScreenState extends State<LoadingScreen> {
 
     gameNotifier.addListener(() {
       if (gameNotifier.value != null) {
+        WidgetService.updateTaggedState(
+          TagState(
+            isIt: gameNotifier.value!.itPlayer!.id == Auth().getUserId(),
+            itName: gameNotifier.value!.itPlayer!.name,
+          ),
+        );
         router.pushReplacement("/home");
       }
     });
