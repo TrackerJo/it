@@ -100,5 +100,6 @@ flutter:
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
 flutter_native_splash:
-  background_image: assets/splash.png
+  background_image: assets/background.png
+  image: assets/icon.png
   fullscreen: true
